@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">LEASHTIME</string>
+    <string name="title_activity_second">SecondActivity</string>
+    <string name="title_activity_visit_report">VisitReport</string>
+    <string name="title_activity_login">LoginActivity</string>
+    <string name="title_activity_view_visit_details">ViewVisitDetail</string>
+    <string name="title_pet_detail_activity">PetDetailActivity</string>
+    <string name="title_photo_activity">PhotoAcitivy</string>
+    <string name="title_map_activity">MapActivity</string>
+    <string name="title_web_view_activity">WebViewActivity</string>
+</resources>

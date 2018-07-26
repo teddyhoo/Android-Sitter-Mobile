@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<com.chauthai.swipereveallayout.SwipeRevealLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/swipe_layout"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@android:color/holo_blue_bright"
+    app:dragEdge="left"
+    app:mode="same_level">
+
+    <FrameLayout
+        android:id="@+id/arrive_layout"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:background="@color/colorPrimaryDark">
+
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:background="@color/arrive_2_green"
+            android:gravity="center"
+            android:text="ARRIVE"
+            android:textColor="@android:color/white"
+            android:textSize="36sp" />
+
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/front_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/holo_blue_light"
+        android:paddingBottom="10dp"
+        android:paddingTop="10dp">
+
+        <android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            xmlns:app="http://schemas.android.com/apk/res-auto"
+            xmlns:tools="http://schemas.android.com/tools"
+            android:id="@+id/row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:clickable="true"
+            android:focusable="true"
+            android:orientation="vertical"
+            android:screenOrientation="portrait">
+
+            <ImageView
+                android:id="@+id/listViewPetPhoto"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="8dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <ImageView
+                android:id="@+id/arriveImg"
+                android:layout_width="14dp"
+                android:layout_height="19dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/arrive_pink_button_3x"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/listViewPetPhoto" />
+
+            <ImageButton
+                android:id="@+id/visitNoteMgr"
+                android:layout_width="32dp"
+                android:layout_height="34dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/postit_yellow_550x550_3x"
+                app:layout_constraintStart_toEndOf="@+id/arriveImg"
+                app:layout_constraintTop_toBottomOf="@+id/listViewPetPhoto" />
+
+            <ImageButton
+                android:id="@+id/visitReportButton"
+                android:layout_width="32dp"
+                android:layout_height="34dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/flag_handwrite_3x"
+                app:layout_constraintStart_toEndOf="@+id/visitNoteMgr"
+                app:layout_constraintTop_toBottomOf="@+id/listViewPetPhoto" />
+
+            <ImageView
+                android:id="@+id/keyIcon"
+                android:layout_width="20dp"
+                android:layout_height="24dp"
+                android:layout_marginBottom="8dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/key_icon_new_2_3x"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/visitReportButton"
+                app:layout_constraintTop_toBottomOf="@+id/visitTimeWindowText" />
+
+            <TextView
+                android:id="@+id/clientName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="4dp"
+                android:textColor="@android:color/black"
+                android:textSize="18sp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/listViewPetPhoto"
+                app:layout_constraintTop_toBottomOf="@+id/petName" />
+
+            <TextView
+                android:id="@+id/visitTimeWindowText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="4dp"
+                android:textColor="@android:color/black"
+                android:textSize="18sp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/listViewPetPhoto"
+                app:layout_constraintTop_toBottomOf="@+id/serviceName" />
+
+            <TextView
+                android:id="@+id/serviceName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="4dp"
+                android:textColor="@android:color/black"
+                android:textSize="18sp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/listViewPetPhoto"
+                app:layout_constraintTop_toBottomOf="@+id/clientName" />
+
+            <TextView
+                android:id="@+id/petName"
+                android:layout_width="0dp"
+                android:layout_height="26dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/common_google_signin_btn_text_dark_focused"
+                android:textSize="18sp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/listViewPetPhoto"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/keyID"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="4dp"
+                android:textColor="@color/yellow_200"
+                android:textSize="18sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/countdown"
+                app:layout_constraintStart_toEndOf="@+id/keyIcon"
+                app:layout_constraintTop_toBottomOf="@+id/visitTimeWindowText" />
+
+
+            <com.bcgdv.asia.lib.ticktock.TickTockView
+                android:id="@+id/countdown"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_gravity="center_vertical|center_horizontal"
+                android:layout_marginEnd="16dp"
+                android:layout_marginTop="8dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/visitTimeWindowText"
+                app:layout_constraintVertical_bias="1.0"
+                app:tickAutoFitText="true"
+                app:tickCircleDuration="total_time"
+                app:tickDotRadius="3dp"
+                app:tickEmptyRingColor="@android:color/black"
+                app:tickFillRingColor="@color/colorPrimaryDark"
+                app:tickMiddleColor="@color/amber_100"
+                app:tickMoveCounterClockwise="false"
+                app:tickRingThickness="2dp"
+                app:tickText="00:00"
+                app:tickTextColor="@color/colorAccent"
+                app:tickTextSize="24dp" />
+
+
+        </android.support.constraint.ConstraintLayout>
+    </FrameLayout>
+</com.chauthai.swipereveallayout.SwipeRevealLayout>

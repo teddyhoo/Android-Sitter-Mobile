@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#3f51b5</color>
+    <color name="colorPrimaryDark">#2d9ad5</color>
+    <color name="colorAccent">#ff4081</color>
+    <color name="light_blue_200">#81d4fa</color>
+    <color name="light_blue_900">#01579b</color>
+    <color name="yellow_200">#fff59d</color>
+    <color name="grey_200">#eeeeee</color>
+    <color name="green_A400">#00e676</color>
+    <color name="arrive_green">#3B6E0E</color>
+    <color name="arrive_2_green">#40a22c</color>
+    <color name="complete_green">#114E04</color>
+    <color name="amber_100">#ffecb3</color>
+    <color name="red_900">#b71c1c</color>
+    <color name="ltlightblue">#90f5f2</color>
+</resources>
