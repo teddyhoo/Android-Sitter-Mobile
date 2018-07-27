@@ -42,6 +42,9 @@ Singletons
 
 TrackerServiceSitter
 VisitsAndTracking
+
 	|----------------VisitDetail
+	
 	|_____________ClientDetail
+	
 	
