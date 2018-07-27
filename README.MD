@@ -19,9 +19,12 @@ Detail fields added: notes, parking, directions
 MainApplication ---------- MainActivity
 				|------------LoginActivity	
 						|
+						
 	RecyclerView		----------------
 		|
+		
 		------------VisitAdapter
+		
 				|------------View Holder 
 				|		-------------ViewVisitDetail
 				|		___________PetDetailActivity
