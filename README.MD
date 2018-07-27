@@ -17,33 +17,15 @@ Detail fields added: notes, parking, directions
 
 
 MainApplication ---------- MainActivity
-
-				|------------LoginActivity
-						
+				|------------LoginActivity	
 						|
-	
-	RecyclerView		------------------
-
+	RecyclerView		----------------
 		|
-		
 		------------VisitAdapter
-		
-				|
-				
 				|------------View Holder 
-				
-				|		|
-				
 				|		-------------ViewVisitDetail
-				
-				|		|
-				
 				|		___________PetDetailActivity
-				
-				|
 				------------------------------PhotoActiivty
-				
-				|
 				------------------------------VisitReport
 				
 
@@ -51,11 +33,6 @@ Singletons
 
 TrackerServiceSitter
 VisitsAndTracking
-
-	|
-	
-	----------------VisitDetail
-	
-	|
-	_____________ClientDetail
+	|----------------VisitDetail
+	|_____________ClientDetail
 	
