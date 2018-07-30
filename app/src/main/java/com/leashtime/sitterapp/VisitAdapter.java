@@ -210,29 +210,19 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                     }
 
                     if(!sVisitsAndTracking.showKey)  {
-
                         keyIconButton.setVisibility(View.INVISIBLE);
                         keyIDField.setVisibility(View.INVISIBLE);
-
                     } else {
-
                         keyIconButton.setVisibility(View.VISIBLE);
                         keyIDField.setVisibility(View.VISIBLE);
-
                         if (visitDetail.noKeyRequired.equals("1")) {
-
                             if(visitDetail.noKeyRequired != null) {
-
                                 keyIDField.setText("NO KEY REQUIRED");
                                 keyIDField.setTextColor(ContextCompat.getColor(mContext,R.color.grey_200));
                                 keyIconButton.setAlpha(0.24f);
-
                             }
-
                         } else if(visitDetail.useKeyDescriptionInstead.equals("Yes")) {
-
                             keyIDField.setText(visitDetail.keyDescriptionText);
-
                         } else {
                             String keyIDString = visitDetail.keyID;
                             if (visitDetail.hasKey.equals("Yes")) {
@@ -246,12 +236,8 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                     }
 
                     if(sVisitsAndTracking.showPetPic) {
-
-                        System.out.println("Show pet pic for row: " + uniqueVisitID);
                         addPetPics(visitDetail,currentRow);
-
                     }
-
                     configureRowView(visitDetail);
                     createActionButtons(visitDetail);
                 }
@@ -273,7 +259,10 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                 timeWindow.setText(cleanArrive);
 
                 if (sVisitsAndTracking.showVisitTimer) {
+                    timerCounter.setVisibility(View.VISIBLE);
                     setupTimerView();
+                }  else {
+                    timerCounter.setVisibility(View.INVISIBLE);
                 }
                 if(sVisitsAndTracking.showVisitTimer) {
                     Calendar c2= Calendar.getInstance();
@@ -531,12 +520,12 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                     VisitDetail visit = (VisitDetail)v.getTag();
                     System.out.println("Should mark arrive for visit: " + visit.appointmentid);
                     if (visit.status.equals("future") || visit.status.equals("late")) {
-                        markVisitArrive(visit);
                         swipeLayout.close(TRUE);
+                        markVisitArrive(visit);
                         notifyDataSetChanged();
                     } else if (visit.status.equals("arrived")) {
-                        markVisitComplete(visit);
                         swipeLayout.close(TRUE);
+                        markVisitComplete(visit);
                         notifyDataSetChanged();
                     }
                 }
@@ -766,8 +755,6 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                 if (comparison < 0 ){
                     canMarkMoreThanArrive = FALSE;
                     Toast.makeText(MainApplication.getAppContext(), "CANNOT MARK ARRIVE. Visit is in the future.", Toast.LENGTH_SHORT).show();
-                    System.out.println("CANNOT MARK MORE THAN ONE ARRIVE");
-
                     return FALSE;
                 }
             } catch (ParseException e) {
@@ -776,22 +763,15 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
 
             if(visit.status.equals("canceled")) {
                 Toast.makeText(mContext, "CANNOT MARK ARRIVE. Visit is canceled.", Toast.LENGTH_SHORT).show();
-                System.out.println("CANNOT MARK ARRIVE: CANCELED");
-
                 return FALSE;
             } else if (visit.status.equals("completed")) {
                 Toast.makeText(mContext, "CANNOT MARK ARRIVE. Visit is completed.", Toast.LENGTH_SHORT).show();
-                System.out.println("CANNOT MARK ARRIVE: COMPLETED");
-
                 return FALSE;
             }  else if (visit.appointmentid.equals(sVisitsAndTracking.onWhichVisitID)) {
                 Toast.makeText(mContext,"VISIT IS ALREADY MARKED ARRIVED.", Toast.LENGTH_SHORT).show();
-                System.out.println("CANNOT MARK ARRIVE: ALREADY");
-
                 return FALSE;
             } else if  (visit.status.equals("future") || visit.status.equals("late")) {
                 Toast.makeText(mContext, "successfully MARKED ARRIVE", Toast.LENGTH_SHORT).show();
-                System.out.println("CANNOT MARK ARRIVE: [OK]");
 
                 sVisitsAndTracking.onWhichVisitID = visit.appointmentid;
                 if(sVisitsAndTracking.isMultiVisitArrive) {
@@ -806,8 +786,6 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
         private void        markVisitArrive(VisitDetail visitDetail) {
             String dateTimeStringHTTP = getDate();
             if (checkIfCanMarkArrive(visitDetail)) {
-                System.out.println("MARIKNG VISIT ARRIVE");
-
                 visitDetail.status = "arrived";
                 visitDetail.arrived = dateTimeStringHTTP;
                 String lastValidLat;
@@ -845,39 +823,27 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                         .url(url)
                         .header("User-Agent", sVisitsAndTracking.USER_AGENT)
                         .build();
-
-                System.out.println("Request for mark arrive: " + request.toString());
                 client.newCall(request).enqueue(new Callback() {
-
                     Response theResponse;
-
                     @Override
                     public void onFailure(Call call, IOException e) {
                         visitOn.currentArriveStatus = "FAIL";
-                        System.out.println("FAIL MARKED ARRIVE");
                         sVisitsAndTracking.writeVisitDataToFile(visitOn);
                     }
-
                     @Override
                     public void onResponse(Call call, Response response) {
                         visitOn.currentArriveStatus = "SUCCCESS";
-                        System.out.println("SUCCESSFULLY MARKED ARRIVE");
                         sVisitsAndTracking.writeVisitDataToFile(visitOn);
-                        //timerCounter.setVisibility(View.VISIBLE);
                         theResponse = response;
                         theResponse.close();
-
                     }
                 });
             }
         }
         private void  markVisitComplete(VisitDetail visit) {
-
             String dateTimeStringHTTP = getDate();
-            Date dateTimeStamp = new Date();
-            String dateTimeString = dateFormat.format(dateTimeStamp);
+
             if(checkIfCanMarkComplete(visit)) {
-                System.out.println("ATTEMPT MARK COMPLETE");
                 visit.status = "completed";
                 visit.completed = dateTimeStringHTTP;
                 String lastValidLat;
@@ -920,7 +886,6 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                 client.newCall(request).enqueue(new Callback() {
                     @Override
                     public void onFailure(Call call, IOException e) {
-
                         visit.currentCompleteStatus = "FAIL";
                         sVisitsAndTracking.writeVisitDataToFile(visit);
                     }
@@ -931,6 +896,8 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                         sVisitsAndTracking.writeVisitDataToFile(visit);
                     }
                 });
+                notifyDataSetChanged();
+
                 String getStringOpen = "[\n";
                 String visitID = visit.appointmentid;
                 int locArrayCount = sVisitsAndTracking.sessionLocationArray.size();
@@ -965,7 +932,6 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                         }
                     }
                 }
-
 
                 if(sVisitsAndTracking.isMultiVisitArrive && sVisitsAndTracking.onWhichVisits.isEmpty()) {
                     sVisitsAndTracking.sessionLocationArray.clear();
@@ -1004,15 +970,12 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                         System.out.println(" COMPLETE SUCCESS RESPONSE: "  + response.body());
                         responseBodyClose = response.body();
                         responseBodyClose.close();
-
                     }
                 });
             }
         }
         private Boolean                 checkIfCanMarkComplete(VisitDetail visit) {
             System.out.println("checking if can MARK COMPLETE");
-
-
             switch (visit.status) {
                 case "canceled":
                     Toast.makeText(MainApplication.getAppContext(), "CANNOT MARK CANCELED VISIT COMPLETE.", Toast.LENGTH_SHORT).show();

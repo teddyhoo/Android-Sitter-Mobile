@@ -350,8 +350,10 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         System.out.println(request);
         if (initialLogin || initialLogin2 || pollingUpdate) {
 
-            recyclerView.setLayoutFrozen(FALSE);
-            recyclerView.removeAllViewsInLayout();
+            if (recyclerView != null) {
+                recyclerView.setLayoutFrozen(FALSE);
+                recyclerView.removeAllViewsInLayout();
+            }
 
             client.newCall(request).enqueue(new Callback() {
                 ResponseBody getVisitResponseBody;
@@ -759,8 +761,6 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                 cal.add(Calendar.DAY_OF_MONTH, -1);
                 Date yesterday = cal.getTime();
                 sVisitsAndTracking.getNextPrevDay(yesterday, nextPrevDateFormat.format(yesterday),"before");
-
-
                 dateText.setText(getDayWeek(cal.get(Calendar.DAY_OF_WEEK)));
                 monthText.setText(getMonthDay(cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.MONTH)));
                 return true;
