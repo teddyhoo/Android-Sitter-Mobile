@@ -258,8 +258,8 @@ public class VisitsAndTracking {
 
                     }   else if (petValueClass.getName().equals("java.util.HashMap")) {
                         HashMap<String,Object> hashDic = (HashMap<String, Object>) petValue;
-                        System.out.println("Pet key: " + petKey);
-                        System.out.println(hashDic.toString());
+                        //System.out.println("Pet key: " + petKey);
+                        //System.out.println(hashDic.toString());
                         if (hashDic.get("label").getClass().getName().equals("java.lang.String")) {
                             petCustomLabel = (String)hashDic.get("label");
                         }
@@ -492,7 +492,7 @@ public class VisitsAndTracking {
                 }
             }
 
-            System.out.println("PARSE SECOND RESPONSE. NUM VISITS PREVIOUS, NEXT: " +  daysAfterVisit.size() + ", "+ daysBeforeVisit.size());
+            //System.out.println("PARSE SECOND RESPONSE. NUM VISITS PREVIOUS, NEXT: " +  daysAfterVisit.size() + ", "+ daysBeforeVisit.size());
 
         } catch (JSONException jsonEx) {
             jsonEx.printStackTrace();

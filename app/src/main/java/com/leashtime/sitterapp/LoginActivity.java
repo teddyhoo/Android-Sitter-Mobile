@@ -1,5 +1,6 @@
 package com.leashtime.sitterapp;
 
+import android.content.BroadcastReceiver;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -14,14 +15,18 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.leashtime.sitterapp.events.LoginEvent;
+import com.leashtime.sitterapp.events.StatusChangeEvent;
 import com.leashtime.sitterapp.network.NetworkStatus;
 
 import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 public class LoginActivity extends AppCompatActivity {
 
     private String versionName;
     private int versionNum;
+    private BroadcastReceiver receiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,6 +37,8 @@ public class LoginActivity extends AppCompatActivity {
 
         Bundle extras = this.getIntent().getExtras();
 
+        String connexStatus = (String)extras.get("networkStatus");
+        System.out.println("LOGIN ACTIVITY Network status: " + connexStatus);
         VisitsAndTracking sVisitsAndTracking = VisitsAndTracking.getInstance();
         int osVersion = Build.VERSION.SDK_INT;
         String manufacturer = Build.MANUFACTURER;
@@ -46,7 +53,6 @@ public class LoginActivity extends AppCompatActivity {
         } catch(PackageManager.NameNotFoundException name) {
             name.printStackTrace();
         }
-
 
         final EditText usernameText = findViewById(R.id.loginName);
         final EditText passwordText = findViewById(R.id.password);
@@ -122,11 +128,51 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     @Override
+    public void onStart() {
+        super.onStart();
+        EventBus.getDefault().register(this);
+
+    }
+    @Override
+    public void onPause() {
+        super.onPause();
+        System.out.println("Login Activity pause-");
+
+    }
+
+    @Override
+    public void onResume() {
+        //EventBus.getDefault().register(this);
+        super.onResume();
+        System.out.println("Login Activity resume");
+    }
+    @Override
     public void onStop() {
+        System.out.println("Login Activity stop");
+        EventBus.getDefault().unregister(this);
         super.onStop();
 
     }
 
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onStatusChangeEvent(StatusChangeEvent status) {
+        System.out.println("Got status change event");
+        ImageView networkIcon = findViewById(R.id.connectIcon);
+        final TextView networkConnectStatus = findViewById(R.id.networkConn);
+        final TextView errorText = findViewById(R.id.errorLogin);
+
+        if (status.typeStatus.equals("network") && status.changeTo.equals("no")) {
+            networkIcon.setAlpha(0.25f);
+            networkConnectStatus.setText("NO NETWORK");
+            networkConnectStatus.setTextColor(Color.RED);
+            errorText.setText("NO CONNECT");
+        } else {
+            networkIcon.setAlpha(1.0f);
+            networkConnectStatus.setText("GOOD NETWORK");
+            networkConnectStatus.setTextColor(Color.BLACK);
+            errorText.setText("");
+        }
+    }
     @Override
     public void onDestroy() {
         super.onDestroy();

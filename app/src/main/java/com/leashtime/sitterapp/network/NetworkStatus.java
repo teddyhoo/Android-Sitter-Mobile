@@ -16,14 +16,10 @@ public class NetworkStatus {
         hasRouteToNetwork = false;
 
         if(isNetworkReachable()) {
-            //System.out.println("Network reachable");
             hasConnect  = true;
-            //System.out.println("Has route to network");
-//System.out.println("Network reachable, NO ROUTE");
             hasRouteToNetwork = hasNetworkConnection(context);
         } else {
             hasConnect = false;
-            //System.out.println("Network NOT REACHABLE");
         }
     }
 
@@ -41,23 +37,6 @@ public class NetworkStatus {
         if (!connected) return false;
 
         boolean routeExists;
-
-        /*Socket socket = new Socket();
-
-        try {
-            InetAddress host = InetAddress.getByName("173.203.157.32");
-            socket.connect(new InetSocketAddress(host,80),5000);
-            routeExists = true;
-        } catch (IOException e) {
-            routeExists = false;
-            e.printStackTrace();
-        } finally {
-            try {
-                socket.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }*/
 
         routeExists = Boolean.TRUE;
 

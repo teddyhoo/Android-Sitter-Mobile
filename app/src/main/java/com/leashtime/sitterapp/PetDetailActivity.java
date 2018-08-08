@@ -228,11 +228,11 @@ public class PetDetailActivity extends AppCompatActivity {
         sorted.putAll(chosenPet.petCustomFieldsSort);
         for (Map.Entry<String,Object> entry : sorted.entrySet()) {
             String dictKey = entry.getKey();
-            System.out.println("Entry key: " + dictKey);
+            //System.out.println("Entry key: " + dictKey);
             HashMap<String,Object> petCustom = chosenPet.petCustomFieldsSort.get(dictKey);
             String keyPet = (String)petCustom.get("label");
             String valPet = (String)petCustom.get("value");
-            System.out.println("Key pet: " + keyPet + ", Val pet: " + valPet);
+            //System.out.println("Key pet: " + keyPet + ", Val pet: " + valPet);
             if (valPet.equals("1"))
                 valPet = "YES";
             else if (valPet.equals("0"))

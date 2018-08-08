@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.constraint.ConstraintLayout;
@@ -29,6 +31,8 @@ import com.danimahardhika.cafebar.CafeBar;
 import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -974,6 +978,44 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                 });
             }
         }
+
+        public  boolean isNetworkAvailable () {
+            boolean success = false;
+            if (checkNetworkConnection()) {
+                try {
+                    URL url = new URL("https://google.com");
+                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                    connection.setConnectTimeout(10000);
+                    connection.connect();
+                    success = connection.getResponseCode() == 200;
+                    System.out.println("Internet is available");
+                } catch (IOException e) {
+                    System.out.println("Error checking internet connection" + e);
+                }
+            } else {
+                return false;
+            }
+            return success;
+        }
+        public boolean isNetworkConnected(Context ctx) {
+            ConnectivityManager cm = (ConnectivityManager) ctx.getSystemService (mContext.CONNECTIVITY_SERVICE);
+            NetworkInfo ni = cm.getActiveNetworkInfo();
+            if (ni != null && ni.isConnectedOrConnecting()) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+
+        public boolean   checkNetworkConnection() {
+            if (isNetworkConnected(mContext)) {
+                    return true;
+                } else {
+                    return false;
+            }
+        }
+
         private Boolean                 checkIfCanMarkComplete(VisitDetail visit) {
             System.out.println("checking if can MARK COMPLETE");
             switch (visit.status) {

@@ -44,8 +44,8 @@ import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
-import java.net.InetSocketAddress;
-import java.net.Socket;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -175,7 +175,11 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                 myActivity.recyclerView = myActivity.findViewById(R.id.recycler_view);
                 myActivity.addToolbar();
 
-                if (myActivity.checkNetworkConnection()) {
+                //if (myActivity.checkNetworkConnection()) {
+                System.out.println("RUN THREAD  CALLING IS NETWORK AVAIL");
+
+                if (myActivity.isNetworkAvailable()) {
+                    System.out.println("Run start thread");
                     myActivity.launchLogin("noConnection");
                 } else {
                     myActivity.launchLogin("connection");
@@ -231,7 +235,10 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        if (checkNetworkConnection()) {
+        System.out.println("ON START CALLING IS NETWORK AVAIL");
+
+        if (isNetworkAvailable()) {
+            System.out.println("onStart after check network connection");
             resendBadRequest();
             if (MainApplication.wasInBackground) {
                 Date todayRightNow = getToday();
@@ -255,13 +262,10 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
             Toast.makeText(MainApplication.getAppContext(), "NO NETWORK CONNECTION", Toast.LENGTH_SHORT).show();
         }
 
-        //if (!serviceBound) {
-            // Duplicatte calls to Service TrackerServiceSitter when initially staring up
-            Intent intent = new Intent(this, TrackerServiceSitter.class);
-            startService(intent);
-            bindService(intent, mConnection, 0);
-            serviceBound = true;
-        //}
+        Intent intent = new Intent(this, TrackerServiceSitter.class);
+        startService(intent);
+        bindService(intent, mConnection, 0);
+        serviceBound = true;
     }
     @Override
     protected void onResume() {
@@ -270,8 +274,11 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                if (checkNetworkConnection()) {
-
+                System.out.println("BROAD CAST RECEIVER CALLING IS NETWORK AVAIL");
+                if (isNetworkAvailable()) {
+                    Toast.makeText(getApplicationContext(), "NETWORK IS AVAILABLE", Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(getApplicationContext(), "NO NETWORK", Toast.LENGTH_LONG).show();
                 }
             }
         };
@@ -426,6 +433,7 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         }
     }
     private void launchLogin(String networkStatus) {
+
         Bundle basket = new Bundle();
         basket.putString("firstLogin", "yes");
         basket.putString("networkStatus", networkStatus);
@@ -439,7 +447,8 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         resendBadRequest();
         if (requestCode == JOB_UPDATE_ID) {
             if (!pollingUpdate) {
-                if (checkNetworkConnection()) {
+                //if (checkNetworkConnection()) {
+                if (isNetworkAvailable()) {
                     pollingUpdate = true;
                     Date today = new Date();
                     String todayString = formatDateComparison.format(today);
@@ -502,53 +511,55 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         }
     }
     private void resendBadRequest() {
-        for (final VisitDetail visitDetail : sVisitsAndTracking.visitData) {
-            if (visitDetail.currentArriveStatus.equals("FAIL")) {
-                Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST RESEND ARRIVE: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
-                reSendArriveRequest(visitDetail);
-            }
-            if (visitDetail.currentCompleteStatus.equals("FAIL")) {
-                Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST RESEND COMPLETE: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
-                reSendCompleteRequest(visitDetail);
-            }
-            if (visitDetail.visitReportUploadStatus.equals("FAIL")) {
-                Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST VISIT REPORT: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
-                client.newCall(visitDetail.visitReportRequest).enqueue(new Callback() {
-                    @Override
-                    public void onFailure(Call call, IOException e) {
-                    }
+        if (isNetworkAvailable()) {
 
-                    @Override
-                    public void onResponse(Call call, Response response) {
-                        visitDetail.visitReportUploadStatus = "SUCCESS";
-                        visitDetail.visitReportRequest = null;
-                    }
-                });
-            }
-            if (visitDetail.imageUploadStatus.equals("FAIL")) {
-                Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST RESEND PHOTO IMAGE: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
-                SendPhotoServer photoUpload = new SendPhotoServer(sVisitsAndTracking.mPreferences.getString("password",""), sVisitsAndTracking.mPreferences.getString("password",""), visitDetail, "petPhoto");
-            }
-            if (visitDetail.mapSnapUploadStatus.equals("FAIL")) {
-                Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST RESEND MAP SNAPSHOT: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
-                SendPhotoServer photoUpload = new SendPhotoServer(sVisitsAndTracking.mPreferences.getString("password",""), sVisitsAndTracking.mPreferences.getString("password",""), visitDetail, "map");
-            }
-        }
+            for (final VisitDetail visitDetail : sVisitsAndTracking.visitData) {
+                if (visitDetail.currentArriveStatus.equals("FAIL")) {
+                    Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST RESEND ARRIVE: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
+                    reSendArriveRequest(visitDetail);
+                }
+                if (visitDetail.currentCompleteStatus.equals("FAIL")) {
+                    Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST RESEND COMPLETE: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
+                    reSendCompleteRequest(visitDetail);
+                }
+                if (visitDetail.visitReportUploadStatus.equals("FAIL")) {
+                    Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST VISIT REPORT: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
+                    client.newCall(visitDetail.visitReportRequest).enqueue(new Callback() {
+                        @Override
+                        public void onFailure(Call call, IOException e) {
+                        }
 
-        if (!sVisitsAndTracking.resendCoordUploadRequest.isEmpty()) {
-            Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST COORDINATE UPLOAD", Toast.LENGTH_SHORT).show();
+                        @Override
+                        public void onResponse(Call call, Response response) {
+                            visitDetail.visitReportUploadStatus = "SUCCESS";
+                            visitDetail.visitReportRequest = null;
+                        }
+                    });
+                }
+                if (visitDetail.imageUploadStatus.equals("FAIL")) {
+                    Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST RESEND PHOTO IMAGE: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
+                    SendPhotoServer photoUpload = new SendPhotoServer(sVisitsAndTracking.mPreferences.getString("password",""), sVisitsAndTracking.mPreferences.getString("password",""), visitDetail, "petPhoto");
+                }
+                if (visitDetail.mapSnapUploadStatus.equals("FAIL")) {
+                    Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST RESEND MAP SNAPSHOT: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
+                    SendPhotoServer photoUpload = new SendPhotoServer(sVisitsAndTracking.mPreferences.getString("password",""), sVisitsAndTracking.mPreferences.getString("password",""), visitDetail, "map");
+                }
+            }
 
-            for (final Request request : sVisitsAndTracking.resendCoordUploadRequest) {
-                client.newCall(request).enqueue(new Callback() {
-                    @Override
-                    public void onFailure(Call call, IOException e) {
-                    }
+            if (!sVisitsAndTracking.resendCoordUploadRequest.isEmpty()) {
+                Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST COORDINATE UPLOAD", Toast.LENGTH_SHORT).show();
+                for (final Request request : sVisitsAndTracking.resendCoordUploadRequest) {
+                    client.newCall(request).enqueue(new Callback() {
+                        @Override
+                        public void onFailure(Call call, IOException e) {
+                        }
 
-                    @Override
-                    public void onResponse(Call call, Response response) {
-                        sVisitsAndTracking.resendCoordUploadRequest.remove(request);
-                    }
-                });
+                        @Override
+                        public void onResponse(Call call, Response response) {
+                            sVisitsAndTracking.resendCoordUploadRequest.remove(request);
+                        }
+                    });
+                }
             }
         }
     }
@@ -1017,82 +1028,80 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         }
         return true;
     }
+    public  boolean isNetworkAvailable () {
+        System.out.println("Is network available called");
+        boolean success = false;
+        if (checkNetworkConnection()) {
+            try {
+                URL url = new URL("https://google.com");
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setConnectTimeout(10000);
+                connection.connect();
+                success = connection.getResponseCode() == 200;
+                if (networkStatusView != null) {
+                    networkStatusView.setText("OK");
+                    networkStatusView.setTextColor(Color.WHITE);
+                }
+                System.out.println("Internet is available");
+            } catch (IOException e) {
+                System.out.println("Error checking internet connection" + e);
+                if (networkStatusView != null) {
+                    networkStatusView.setText("CANNOT CONNECT");
+                    networkStatusView.setTextColor(Color.RED);
+                }
+                return false;
+            }
+        } else {
+            return false;
+        }
+        return success;
+    }
     public boolean   checkNetworkConnection() {
-        if (isNetworkConnected(this)) {
             ConnectivityManager cm = (ConnectivityManager) this.getSystemService (Context.CONNECTIVITY_SERVICE);
             NetworkInfo ni = cm.getActiveNetworkInfo();
 
-            if (ni.isConnectedOrConnecting()) {
-                int type = ni.getType();
-                if (null != ni) {
+            if (ni != null) {
+                if (ni.isConnectedOrConnecting()) {
+                    int type = ni.getType();
+                    if (networkStatusView != null) {
+                        networkStatusView.setVisibility(View.INVISIBLE);
+                    }
                     if(type == ConnectivityManager.TYPE_WIFI) {
                         if (networkStatusView != null) {
                             networkStatusView.setText("WIFI");
-                            networkStatusView.setVisibility(View.INVISIBLE);
+                            return TRUE;
                         }
                     } else if (type== ConnectivityManager.TYPE_MOBILE) {
                         if (networkStatusView != null) {
                             networkStatusView.setText("MOBILE");
-                            networkStatusView.setVisibility(View.INVISIBLE);
+                            return TRUE;
                         }
                     } else if (type== ConnectivityManager.TYPE_WIMAX) {
                         if (networkStatusView != null) {
                             networkStatusView.setText("WIMAX");
-                            networkStatusView.setVisibility(View.INVISIBLE);
+                            return TRUE;
                         }
                     } else {
                         if (networkStatusView != null) {
-                            networkStatusView.setVisibility(View.VISIBLE);
                             networkStatusView.setText("NO CONNECT");
                             networkStatusView.setTextColor(Color.RED);
+                            return FALSE;
                         }
                     }
-                    if (isInternetAvailable()) {
-                        if (networkStatusView != null) {
-                            networkStatusView.setVisibility(View.INVISIBLE);
-                        }
-                        return true;
-                    } else {
-                        if (networkStatusView != null) {
-                            networkStatusView.setText("NO route to internet");
-                            networkStatusView.setTextColor(Color.RED);
-                            networkStatusView.setVisibility(View.VISIBLE);
-                        }
-                        return false;
+                } else {
+                    if (networkStatusView != null) {
+                        networkStatusView.setText("ROUTE");
+                        networkStatusView.setTextColor(Color.RED);
+                        networkStatusView.setVisibility(View.VISIBLE);
                     }
+                    return FALSE;
                 }
             }
-        } else {
-            if (networkStatusView != null) {
-                networkStatusView.setText("NO CONNECT");
-                networkStatusView.setTextColor(Color.RED);
-                networkStatusView.setVisibility(View.VISIBLE);
-            }
-            return false;
-        }
-        return false;
-    }
-    public static boolean isNetworkConnected(Context ctx) {
-        ConnectivityManager cm = (ConnectivityManager) ctx.getSystemService (Context.CONNECTIVITY_SERVICE);
-        NetworkInfo ni = cm.getActiveNetworkInfo();
-        return ni != null && ni.isConnectedOrConnecting();
-    }
-    public static boolean isInternetAvailable() {
-        String host = "www.google.com";
-        int port = 80;
-        Socket socket = new Socket();
 
-        try {
-            socket.connect(new InetSocketAddress(host, port), 2000);
-            socket.close();
-            return true;
-        } catch (IOException e) {
-            try {
-                socket.close();
-            } catch (IOException es) {}
-            return false;
-        }
+
+        return FALSE;
     }
+
     private String                      getMonthDay(int dateMonth, int month) {
         String dateNum = Integer.toString(dateMonth);
         String monthString = "";
@@ -1145,5 +1154,30 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         }
         return dayWeek;
     }
+
+
+
+    /*public static boolean isNetworkConnected(Context ctx) {
+        ConnectivityManager cm = (ConnectivityManager) ctx.getSystemService (Context.CONNECTIVITY_SERVICE);
+        NetworkInfo ni = cm.getActiveNetworkInfo();
+        return ni != null && ni.isConnectedOrConnecting();
+    }*/
+    /*public static boolean isInternetAvailable() {
+        String host = "www.google.com";
+        int port = 80;
+        Socket socket = new Socket();
+
+        try {
+            socket.connect(new InetSocketAddress(host, port), 2000);
+            socket.close();
+            return true;
+        } catch (IOException e) {
+            try {
+                socket.close();
+            } catch (IOException es) {}
+            return false;
+        }
+    }*/
+
 
 }
