@@ -109,7 +109,9 @@ public class VisitDetail implements Serializable {
 
     public void addCoordinateForVisit(Location coordinate) {
 
-        gpsDicForVisit.add(convertLocationToDictionary(coordinate));
+        if (coordinate != null) {
+            gpsDicForVisit.add(convertLocationToDictionary(coordinate));
+        }
     }
     public void printCoordinates() {
 
