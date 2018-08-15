@@ -210,18 +210,23 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
     }
     public void populateAdapter() {
         if (recyclerView == null) {
+            System.out.println("Recycle view NULL, recreating");
             recyclerView = findViewById(R.id.recycler_view);
         }
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         visitAdapter = new VisitAdapter(this, sVisitsAndTracking.visitData);
+
+        // Possible bug: if the recyclerview is not null, you set it
+        // However, the else (it is null == TRUE) statement swaps the Adapter
         if (recyclerView.getAdapter() != null) {
-            recyclerView.setAdapter(visitAdapter);
+            System.out.println("Recycle view get / set adapter and NOT NULL");
+            recyclerView.swapAdapter(visitAdapter,FALSE);
         } else {
-            recyclerView.swapAdapter(visitAdapter, TRUE);
+            System.out.println("Recycle view swap adapter");
+            recyclerView.setAdapter(visitAdapter);
         }
         visitAdapter.notifyDataSetChanged();
     }
-
     public Date getToday() {
         Calendar c2 = Calendar.getInstance();
         c2.add(Calendar.HOUR, 1);
@@ -231,7 +236,6 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         Date todayRightNow = new Date();
         return todayRightNow;
     }
-
     @Override
     protected void onStart() {
         super.onStart();
@@ -249,7 +253,7 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                 MainApplication.wasInBackground = false;
                 if (!initialLogin && !initialLogin2) {
                     pollingUpdate = true;
-                    getVisits(sVisitsAndTracking.mPreferences.getString("username",""), sVisitsAndTracking.mPreferences.getString("password",""), daysBefore(), daysLater(), "1");
+                    getVisits(sVisitsAndTracking.mPreferences.getString("username",""), sVisitsAndTracking.mPreferences.getString("password",""), daysBefore(), daysLater(), "0");
                 }
 
                 sVisitsAndTracking.onWhichDate = todayRightNow;
@@ -358,7 +362,7 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         if (initialLogin || initialLogin2 || pollingUpdate) {
 
             if (recyclerView != null) {
-                recyclerView.setLayoutFrozen(FALSE);
+                recyclerView.setLayoutFrozen(TRUE);
                 recyclerView.removeAllViewsInLayout();
             }
 
@@ -512,7 +516,6 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
     }
     private void resendBadRequest() {
         if (isNetworkAvailable()) {
-
             for (final VisitDetail visitDetail : sVisitsAndTracking.visitData) {
                 if (visitDetail.currentArriveStatus.equals("FAIL")) {
                     Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST RESEND ARRIVE: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
@@ -1097,8 +1100,6 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                     return FALSE;
                 }
             }
-
-
         return FALSE;
     }
 
@@ -1154,30 +1155,4 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         }
         return dayWeek;
     }
-
-
-
-    /*public static boolean isNetworkConnected(Context ctx) {
-        ConnectivityManager cm = (ConnectivityManager) ctx.getSystemService (Context.CONNECTIVITY_SERVICE);
-        NetworkInfo ni = cm.getActiveNetworkInfo();
-        return ni != null && ni.isConnectedOrConnecting();
-    }*/
-    /*public static boolean isInternetAvailable() {
-        String host = "www.google.com";
-        int port = 80;
-        Socket socket = new Socket();
-
-        try {
-            socket.connect(new InetSocketAddress(host, port), 2000);
-            socket.close();
-            return true;
-        } catch (IOException e) {
-            try {
-                socket.close();
-            } catch (IOException es) {}
-            return false;
-        }
-    }*/
-
-
 }

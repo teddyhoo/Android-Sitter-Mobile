@@ -67,7 +67,7 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
     public SupportMapFragment mapFragment;
     public ImageView snapImg;
     ImageView petPicture;
-
+    public VisitDetail currentVisit;
     private VisitDetail currentVisitTemp;
     final VisitsAndTracking mVisitsAndTracking = VisitsAndTracking.getInstance();
     public static final int MY_PERMISSIONS_REQUEST_FILE = 200;
@@ -104,7 +104,7 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
             }
         });
 
-        VisitDetail currentVisit = currentVisitTemp;
+        currentVisit = currentVisitTemp;
         final VisitDetail visitDetailFinal = currentVisit;
         String currVisSum = currentVisit.clientname;
         String currPetSum = currentVisit.petNames;
@@ -686,6 +686,13 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
         iMap.addPolyline(polylineOptions);
     }
 
+    @Override
+    public void onBackPressed() {
+        final TextInputEditText visitNoteText = findViewById(R.id.sitterVisitNote);
+        currentVisit.visitNoteBySitter = visitNoteText.getText().toString();
+        mVisitsAndTracking.writeVisitDataToFile(currentVisit);
+        finish();
+    }
     @Override
     public void onMapReady(GoogleMap googleMap) {
        iMap = googleMap;

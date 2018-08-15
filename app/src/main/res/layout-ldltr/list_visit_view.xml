@@ -13,13 +13,13 @@
 
     <FrameLayout
         android:id="@+id/arrive_layout"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@color/colorPrimaryDark">
 
         <TextView
             android:id="@+id/statusText"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@color/arrive_2_green"
             android:gravity="center"
