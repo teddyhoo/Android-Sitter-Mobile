@@ -1,4 +1,5 @@
 ANDROID RELEASE NOTES (8-15-18)
+Version 2.0
 
 BUG FIXES: 
 
@@ -9,6 +10,10 @@ BUG FIXES:
 - null value check on location coordinate being added to visit (transition background to foreground state issue; the location tracker may report location before the visit data object is build / ready to receive)
 - null value check on recyclerView (visit list table)
 - the last three bug fixes were related to background to foreground transition issues
+
+ISSUES:
+- in testing app end-to-end, sometimes the gps coordinates would get funky; e.g. one coordinate in batch of coords that is 4000 m distance
+- when sliding to mark arrive or complete, tapping on the ARRIVE or COMPLETE button sometimes does not seem to register gesture input; sometimes, it seems like you have to tap it really hard; I do not know if this something related to the state of my device or code related; it does work, and theoretically you should be able to tap anywhere in the slide in cell to mark arrive or complete
 
 MAJOR CHANGES: 
 
