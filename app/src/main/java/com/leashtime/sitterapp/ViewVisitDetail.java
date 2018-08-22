@@ -341,7 +341,7 @@ public class ViewVisitDetail extends AppCompatActivity {
         }
         if(!clientDetails.clinicCity.equals("NULL VALUE")) {
             String clinicCityZipState = clientDetails.clinicCity + ", " + clientDetails.clinicState + "  " + clientDetails.clinicZip;
-            vetInfoLay.addView(createLabelContent("CLINIC CITY, ZIP",clientDetails.vetName,Color.WHITE, 18));
+            vetInfoLay.addView(createLabelContent("CLINIC CITY, ZIP",clinicCityZipState,Color.WHITE, 18));
         }
         clientViewScrollView.addView(vetInfoLay);
     }

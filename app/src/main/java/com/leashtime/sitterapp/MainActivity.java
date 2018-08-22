@@ -216,8 +216,6 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         visitAdapter = new VisitAdapter(this, sVisitsAndTracking.visitData);
 
-        // Possible bug: if the recyclerview is not null, you set it
-        // However, the else (it is null == TRUE) statement swaps the Adapter
         if (recyclerView.getAdapter() != null) {
             System.out.println("Recycle view get / set adapter and NOT NULL");
             recyclerView.swapAdapter(visitAdapter,FALSE);
@@ -264,12 +262,16 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
             }
         } else {
             Toast.makeText(MainApplication.getAppContext(), "NO NETWORK CONNECTION", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(this, TrackerServiceSitter.class);
+            startService(intent);
+            bindService(intent, mConnection, 0);
+            serviceBound = true;
         }
 
-        Intent intent = new Intent(this, TrackerServiceSitter.class);
-        startService(intent);
-        bindService(intent, mConnection, 0);
-        serviceBound = true;
+        //Intent intent = new Intent(this, TrackerServiceSitter.class);
+        //startService(intent);
+        //bindService(intent, mConnection, 0);
+       // serviceBound = true;
     }
     @Override
     protected void onResume() {
@@ -296,12 +298,16 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
     protected void onStop() {
         if (!initialLogin && !initialLogin2) {
             if (serviceBound) {
+                System.out.println("Service is bound and moving to foreground");
                 trackerServiceSitter.foreground();
+                unbindService(mConnection);
+                serviceBound = false;
             } else {
+                System.out.println("Service NOT bound STOPPING SERVICE");
                 stopService(new Intent(this, TrackerServiceSitter.class));
             }
-            unbindService(mConnection);
-            serviceBound = false;
+            //unbindService(mConnection);
+            //serviceBound = false;
         }
 
         if (visitAdapter != null) {
@@ -425,6 +431,10 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                                     @Override
                                     public void run() {
                                         populateAdapter();
+                                        Intent intent = new Intent(MainActivity.this, TrackerServiceSitter.class);
+                                        startService(intent);
+                                        bindService(intent, mConnection, 0);
+                                        serviceBound = true;
                                     }
                                 });
                             }

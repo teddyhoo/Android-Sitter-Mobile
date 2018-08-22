@@ -15,16 +15,18 @@
         android:id="@+id/arrive_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/colorPrimaryDark">
+        android:background="@android:color/holo_orange_light">
 
         <TextView
             android:id="@+id/statusText"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@color/arrive_2_green"
+            android:background="@android:color/holo_blue_bright"
+            android:elevation="@dimen/cafebar_shadow_around"
             android:gravity="center"
             android:text="ARRIVE"
-            android:textColor="@android:color/white"
+            android:textColor="@android:color/background_light"
+            android:textColorLink="@android:color/transparent"
             android:textSize="36sp" />
 
     </FrameLayout>

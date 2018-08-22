@@ -546,25 +546,8 @@ public class VisitsAndTracking {
         visit.endDateTime = validateVisitDetail(visitItemDetail.get("endDateTime"));
         visit.shortNaturalDate = validateVisitDetail(visitItemDetail.get("shortNaturalDate"));
         visit.mapSnapShotImage = "None";
-
-        /*System.out.println("Visit Information");
-        System.out.println(visit.clientname);
-        System.out.println(visit.pets);
-        System.out.println(visit.service);
-        System.out.println("-----------------------");*/
-
         addVisitProfile(visit);
 
-        // pendingchange
-        // sitterr
-        // shortDate MM/DD/YYYY
-        // endDateTime YYYY-MM-DD HH:MM:SS
-        // highpriority
-        // longDayAndDate
-        // shortDateAndDay
-        // shortNaturalDate
-        // month3Date
-        // totalRate
     }
     private void        addVisitProfile(VisitDetail visit) {
 
@@ -751,7 +734,7 @@ public class VisitsAndTracking {
         lastValidLocation = location;
         if(onWhichVisitID.equals("0000")) {
 
-        } else {
+        } else if (location != null) {
             sessionLocationArray.add(location);
             if(isMultiVisitArrive) {
                 for(String onVisitIDString : onWhichVisits) {

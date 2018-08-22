@@ -31,8 +31,6 @@ import com.danimahardhika.cafebar.CafeBar;
 import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -64,6 +62,7 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
     private Drawable fileFolder;
     private Drawable visitReportIcon;
     private Drawable takePhotoIcon;
+    private Drawable arriveIcon;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd",new Locale("US"));
     private final SimpleDateFormat coordinateDateFormat =  new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
     private static final int ONE_DAY = 1000 * 60 * 60 * 24;
@@ -81,6 +80,8 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
         visitReportIcon = ContextCompat.getDrawable(mContext, R.drawable.flag_handwrite_3x);
         fileFolder =  ContextCompat.getDrawable(mContext,R.drawable.file_folder_line_3x);
         takePhotoIcon = ContextCompat.getDrawable(mContext, R.drawable.camera128x128_3x);
+        arriveIcon = ContextCompat.getDrawable(mContext, R.drawable.arrive_pink_button_3x);
+
         binderHelper.setOpenOnlyOne(true);
 
     }
@@ -168,9 +169,27 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
             super(itemRow);
             sVisitsAndTracking = VisitsAndTracking.getInstance();
             currentRow = itemRow;
+
+            SwipeRevealLayout.SimpleSwipeListener listener = new SwipeRevealLayout.SimpleSwipeListener() {
+                @Override
+                public void onClosed(SwipeRevealLayout view) {
+                    System.out.println("Swipe layout ON close method called");
+                    VisitDetail swipeTag = (VisitDetail)view.getTag();
+                    configureRowView(swipeTag);
+                    notifyDataSetChanged();
+                }
+                @Override
+                public void onOpened(SwipeRevealLayout view) {
+                }
+                @Override
+                public void onSlide(SwipeRevealLayout view, float slideOffset) {
+                }
+            };
             swipeLayout = itemView.findViewById(R.id.swipe_layout);
+            swipeLayout.setSwipeListener(listener);
             frontLayout =itemRow.findViewById(R.id.front_layout);
             arriveLayout = itemRow.findViewById(R.id.arrive_layout);
+            statusText = itemRow.findViewById(R.id.statusText);
             petNames = itemRow.findViewById(R.id.petName);
             clientName = itemRow.findViewById(R.id.clientName);
             serviceName = itemRow.findViewById(R.id.serviceName);
@@ -181,7 +200,6 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
             writeVisitReportButton = itemRow.findViewById(R.id.visitReportButton);
             petPhotoImage = itemRow.findViewById(R.id.listViewPetPhoto);
             arriveImage = itemRow.findViewById(R.id.arriveImg);
-            statusText = itemRow.findViewById(R.id.statusText);
             timerCounter = itemRow.findViewById(R.id.countdown);
 
         }
@@ -202,11 +220,6 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                     petNames.setText(visitDetail.petNames);
                     serviceName.setText(visitDetail.service);
                     timeWindow.setText(visitDetail.timeofday);
-
-                    if (visitDetail.status.equals("arrived")) {
-                        frontLayout.setBackgroundColor(Color.BLUE);
-                        statusText.setText("COMPLETE");
-                    }
                     if(sVisitsAndTracking.showClientName) {
                         clientName.setText(visitDetail.clientname);
                     } else {
@@ -252,7 +265,14 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
             if (visit.status.equals("arrived")) {
                 currentRow.setBackgroundColor(ContextCompat.getColor(mContext, R.color.green_A400));
                 frontLayout.setBackgroundColor(ContextCompat.getColor(mContext, R.color.green_A400));
+                frontLayout.setBackgroundColor(Color.BLUE);
+                statusText.setText("COMPLETE");
                 arriveLayout.setBackgroundColor(ContextCompat.getColor(mContext, R.color.arrive_2_green));
+                arriveImage.setVisibility(View.INVISIBLE);
+                arriveImage.setImageDrawable(null);
+                arriveImage.setBackground(null);
+                arriveImage.setImageBitmap(null);
+                arriveImage.setImageDrawable(arriveIcon);
                 arriveImage.setVisibility(View.VISIBLE);
                 petNames.setTextColor(Color.WHITE);
                 serviceName.setTextColor(Color.WHITE);
@@ -365,16 +385,6 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
 
 
         }
-        private String prettyDateOnlyTime(String dateTimeString) {
-            String newString = "";
-            try {
-                Date date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).parse(dateTimeString);
-                newString = new SimpleDateFormat("h:mm",Locale.US).format(date);
-            } catch (ParseException e) {
-                e.printStackTrace();
-            }
-            return newString;
-        }
         public void setupTimerView() {
             if (timerCounter != null) {
                 timerCounter.setOnTickListener(new TickTockView.OnTickListener() {
@@ -464,7 +474,7 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                     mContext.startActivity(visitDetailIntent);
                 }
             });
-            arriveLayout.setOnClickListener(new View.OnClickListener() {
+            statusText.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     VisitDetail visit = (VisitDetail)v.getTag();
@@ -472,11 +482,9 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                     if (visit.status.equals("future") || visit.status.equals("late")) {
                         markVisitArrive(visit);
                         swipeLayout.close(TRUE);
-                        notifyDataSetChanged();
                     } else if (visit.status.equals("arrived")) {
                         markVisitComplete(visit);
                         swipeLayout.close(TRUE);
-                        notifyDataSetChanged();
                     }
                 }
             });
@@ -517,23 +525,6 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                     mContext.startActivity(visitReportIntent);
                 }
             });
-            statusText.setOnClickListener(new View.OnClickListener() {
-
-                @Override
-                public void onClick(View v) {
-                    VisitDetail visit = (VisitDetail)v.getTag();
-                    System.out.println("Should mark arrive for visit: " + visit.appointmentid);
-                    if (visit.status.equals("future") || visit.status.equals("late")) {
-                        swipeLayout.close(TRUE);
-                        markVisitArrive(visit);
-                        notifyDataSetChanged();
-                    } else if (visit.status.equals("arrived")) {
-                        swipeLayout.close(TRUE);
-                        markVisitComplete(visit);
-                        notifyDataSetChanged();
-                    }
-                }
-            });
         }
         private void addPetPics (VisitDetail visit, View rowNum) {
 
@@ -541,7 +532,7 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
 
             int numberImages = visit.petListVisit.size();
 
-            System.out.println("Number of images from <Visit>.petListVisit: " + numberImages);
+            //System.out.println("Number of images from <Visit>.petListVisit: " + numberImages);
 
             if(visit.petPicFileName != null) {
                 File file = new File(visit.petPicFileName);
@@ -822,7 +813,6 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                 if(sVisitsAndTracking.USER_AGENT == null) {
                     sVisitsAndTracking.USER_AGENT = "LeashTime Android / null user agent";
                 }
-
                 Request request = new Request.Builder()
                         .url(url)
                         .header("User-Agent", sVisitsAndTracking.USER_AGENT)
@@ -886,7 +876,6 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                         .header("User-Agent",sVisitsAndTracking.USER_AGENT)
                         .build();
 
-                sVisitsAndTracking.writeVisitDataToFile(visit);
                 client.newCall(request).enqueue(new Callback() {
                     @Override
                     public void onFailure(Call call, IOException e) {
@@ -900,7 +889,6 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                         sVisitsAndTracking.writeVisitDataToFile(visit);
                     }
                 });
-                notifyDataSetChanged();
 
                 String getStringOpen = "[\n";
                 String visitID = visit.appointmentid;
@@ -974,29 +962,12 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                         System.out.println(" COMPLETE SUCCESS RESPONSE: "  + response.body());
                         responseBodyClose = response.body();
                         responseBodyClose.close();
+
                     }
                 });
             }
         }
 
-        public  boolean isNetworkAvailable () {
-            boolean success = false;
-            if (checkNetworkConnection()) {
-                try {
-                    URL url = new URL("https://google.com");
-                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                    connection.setConnectTimeout(10000);
-                    connection.connect();
-                    success = connection.getResponseCode() == 200;
-                    System.out.println("Internet is available");
-                } catch (IOException e) {
-                    System.out.println("Error checking internet connection" + e);
-                }
-            } else {
-                return false;
-            }
-            return success;
-        }
         public boolean isNetworkConnected(Context ctx) {
             ConnectivityManager cm = (ConnectivityManager) ctx.getSystemService (mContext.CONNECTIVITY_SERVICE);
             NetworkInfo ni = cm.getActiveNetworkInfo();
@@ -1006,8 +977,6 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                 return false;
             }
         }
-
-
         public boolean   checkNetworkConnection() {
             if (isNetworkConnected(mContext)) {
                     return true;
@@ -1015,7 +984,6 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                     return false;
             }
         }
-
         private Boolean                 checkIfCanMarkComplete(VisitDetail visit) {
             System.out.println("checking if can MARK COMPLETE");
             switch (visit.status) {
@@ -1068,5 +1036,16 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
             }
             return TRUE;
         }
+        private String prettyDateOnlyTime(String dateTimeString) {
+            String newString = "";
+            try {
+                Date date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).parse(dateTimeString);
+                newString = new SimpleDateFormat("h:mm",Locale.US).format(date);
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+            return newString;
+        }
+
     }
 }
