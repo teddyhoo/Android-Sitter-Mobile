@@ -731,7 +731,9 @@ public class VisitsAndTracking {
         System.out.println("REMOVED all the current visit item elements");
     }
     public void         setLastValidLocation(Location location) {
+
         lastValidLocation = location;
+
         if(onWhichVisitID.equals("0000")) {
 
         } else if (location != null) {
@@ -875,22 +877,22 @@ public class VisitsAndTracking {
         if(mPreferences.getString("username", "").isEmpty()) {
 
             editor.putString("username","");
-            System.out.println("PREF seek username is EMPTY: ");
+            //System.out.println("PREF seek username is EMPTY: ");
             USERNAME = mPreferences.getString("username","");
         } else {
             USERNAME = mPreferences .getString("username","");
-            System.out.println("PREF seek USERNAME: " + USERNAME);
+            //System.out.println("PREF seek USERNAME: " + USERNAME);
 
         }
 
         if(mPreferences.getString("password", "").isEmpty()) {
             editor.putString("password","");
             PASSWORD = mPreferences.getString("password","");
-            System.out.println("PREF seek password is EMPTY: ");
+           // System.out.println("PREF seek password is EMPTY: ");
 
         } else {
             PASSWORD = mPreferences.getString("password", "");
-            System.out.println("PREF seek USERNAME: " + PASSWORD);
+            //System.out.println("PREF seek USERNAME: " + PASSWORD);
 
         }
         editor.apply();
