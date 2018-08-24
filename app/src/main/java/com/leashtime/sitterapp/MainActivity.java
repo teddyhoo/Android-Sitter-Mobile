@@ -258,7 +258,10 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                 sVisitsAndTracking.showingWhichDate = todayRightNow;
                 sVisitsAndTracking.todayDateFormat = sVisitsAndTracking.formatter.format(sVisitsAndTracking.onWhichDate);
                 sVisitsAndTracking.showingDateFormat = sVisitsAndTracking.formatter.format(sVisitsAndTracking.showingWhichDate);
-
+            }
+            else {
+                if (visitAdapter != null)
+                    visitAdapter.notifyDataSetChanged();
             }
         } else {
             Toast.makeText(MainApplication.getAppContext(), "NO NETWORK CONNECTION", Toast.LENGTH_SHORT).show();

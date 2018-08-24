@@ -25,7 +25,6 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 
 import com.leashtime.sitterapp.Exif.ExifInterface;
-import com.leashtime.sitterapp.events.ReloadVisitsEvent;
 import com.leashtime.sitterapp.events.SavePhotoEvent;
 import com.leashtime.sitterapp.network.SendPhotoServer;
 
@@ -122,8 +121,8 @@ public class PhotoActivity extends AppCompatActivity{
             if (event.appointmentID.equals(visitItem.appointmentid)) {
                 sVisitsAndTracking.writeVisitDataToFile(visitItem);
                 sendPhotoToServer(visitItem);
-                ReloadVisitsEvent visitReportEvent = new ReloadVisitsEvent();
-                EventBus.getDefault().post(visitReportEvent);
+                //ReloadVisitsEvent visitReportEvent = new ReloadVisitsEvent();
+                //EventBus.getDefault().post(visitReportEvent);
             }
             pos++;
         }
@@ -340,7 +339,6 @@ public class PhotoActivity extends AppCompatActivity{
                 usePhotoFinal.setVisibility(View.INVISIBLE);
                 previewImage.setVisibility(View.INVISIBLE);
                 finish();
-
             }
         });
 
@@ -559,7 +557,7 @@ public class PhotoActivity extends AppCompatActivity{
                     }
 
 
-                    // System.out.println("Bitmap size: " +widthBM + ", " + heightBM +  ",  netWidthHeight: " + netHeight + ", " +  netWidth + " ---> " + "orientation: " +  orientation + ", dimension: " + dimension);
+                     System.out.println("Bitmap size: " +widthBM + ", " + heightBM +  ",  netWidthHeight: " + netHeight + ", " +  netWidth + " ---> " + "orientation: " +  orientation + ", dimension: " + dimension);
                     ByteArrayOutputStream bos = null;
 
                     try {
@@ -567,10 +565,10 @@ public class PhotoActivity extends AppCompatActivity{
                         Bitmap bmRotated = Bitmap.createBitmap(bmSheared, 0, 0, bmSheared.getWidth(), bmSheared.getHeight(),matrix, true);
                         bos = new ByteArrayOutputStream(bmRotated.getByteCount());
                         bmRotated.compress(Bitmap.CompressFormat.JPEG, 90, bos);
-
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
+                                System.out.println("Preview image on UI main thread");
                                 previewImage.setImageBitmap(bmRotated);
                             }
                         });

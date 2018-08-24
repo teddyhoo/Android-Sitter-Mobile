@@ -33,7 +33,6 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
-import com.leashtime.sitterapp.events.ReloadVisitsEvent;
 import com.leashtime.sitterapp.events.SendVisitReportEvent;
 
 import org.greenrobot.eventbus.EventBus;
@@ -173,14 +172,14 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
                     Toast.makeText(MainApplication.getAppContext(), "SENDING VISIT REPORT.", Toast.LENGTH_SHORT).show();
                     SendVisitReportEvent event = new SendVisitReportEvent(visitDetailFinal.appointmentid);
                     EventBus.getDefault().post(event);
-                    ReloadVisitsEvent visitReportEvent = new ReloadVisitsEvent();
-                    EventBus.getDefault().post(visitReportEvent);
+                    //ReloadVisitsEvent visitReportEvent = new ReloadVisitsEvent();
+                    //EventBus.getDefault().post(visitReportEvent);
                 } else {
                     Toast.makeText(MainApplication.getAppContext(), "SENDING VISIT REPORT.", Toast.LENGTH_SHORT).show();
                     SendVisitReportEvent event = new SendVisitReportEvent(visitDetailFinal.appointmentid);
                     EventBus.getDefault().post(event);
-                    ReloadVisitsEvent visitReportEvent = new ReloadVisitsEvent();
-                    EventBus.getDefault().post(visitReportEvent);
+                    //ReloadVisitsEvent visitReportEvent = new ReloadVisitsEvent();
+                    //EventBus.getDefault().post(visitReportEvent);
                 }
             }
         });
@@ -637,7 +636,6 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
                 }
 
                 int size = bitmap.getByteCount();
-                System.out.println("Image size:  " + size);
                 ByteArrayOutputStream bos = new ByteArrayOutputStream(size);
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 50, bos);
                 FileOutputStream fileOutputStream = null;
