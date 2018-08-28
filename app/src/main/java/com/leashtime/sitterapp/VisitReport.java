@@ -14,6 +14,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.TextInputEditText;
 import android.support.v4.app.ActivityCompat;
@@ -76,7 +77,7 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
         super.onCreate(savedInstanceState);
         //TypefaceUtil.overrideFont(getApplicationContext(), "SERIF", "fonts/Lato-Regular.ttf"); // font from assets: "assets/fonts/Roboto-Regular.ttf
         setContentView(R.layout.visit_report_activity);
-        EventBus.getDefault().register(this);
+
         petPicture = this.findViewById(R.id.visit_picture);
         ImageButton backButton = findViewById(R.id.back_arrow);
         TextView clientInfoText = findViewById(R.id.petInfo);
@@ -91,23 +92,13 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
                 currentVisitTemp = visitItem;
             }
         }
-
-        final String appointmentid = currentVisitTemp.appointmentid;
-        petPicture.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                final Intent startIntent = new Intent(getApplicationContext(),PhotoActivity.class);
-                startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startIntent.putExtra("visitID",appointmentid);
-                getApplicationContext().startActivity(startIntent);
-            }
-        });
-
         currentVisit = currentVisitTemp;
+        final String appointmentid = currentVisitTemp.appointmentid;
         final VisitDetail visitDetailFinal = currentVisit;
-        String currVisSum = currentVisit.clientname;
-        String currPetSum = currentVisit.petNames;
+        final String currVisSum = currentVisit.clientname;
+        final String currPetSum = currentVisit.petNames;
         String currTime;
+
         if(currentVisit.arrived.equals("NONE")) {
             currTime = "Not started";
         } else {
@@ -119,36 +110,53 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
         } else {
             currTime = currTime + " - " + trimTime(currentVisit.completed);
         }
-        clientInfoText.setText(currVisSum);
-        timeInfoText.setText(currPetSum);
-        otherInfo.setText(currTime);
 
-        if(null != currentVisit.petPicFileName) {
-            File file = new File(currentVisit.petPicFileName);
-            Uri uri = Uri.fromFile(file);
-            BitmapFactory.Options newOpts = new BitmapFactory.Options();
-            newOpts.inSampleSize = 4;
-            try {
-                InputStream inputStream = getApplicationContext().getContentResolver().openInputStream(uri);
-                Bitmap bm = BitmapFactory.decodeStream(inputStream,null, newOpts);
-                petPicture.setImageBitmap(bm);
-            } catch (IOException e) {
-                e.printStackTrace();
+        final String finalCurrentTime = currTime;
+
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("Running on UI thread with adding components");
+                petPicture.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        final Intent startIntent = new Intent(getApplicationContext(),PhotoActivity.class);
+                        startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startIntent.putExtra("visitID",appointmentid);
+                        getApplicationContext().startActivity(startIntent);
+                    }
+                });
+
+                clientInfoText.setText(currVisSum);
+                timeInfoText.setText(currPetSum);
+                otherInfo.setText(finalCurrentTime);
+                visitNoteText.setText(currentVisit.visitNoteBySitter);
+                System.out.println("Running on UI thread set mood buttons");
+                setMoodButtons(currentVisitTemp);
             }
-        }
-
-        visitNoteText.setText(currentVisit.visitNoteBySitter);
+        });
 
         backButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                currentVisit.visitNoteBySitter = visitNoteText.getText().toString();
-                mVisitsAndTracking.writeVisitDataToFile(currentVisit);
-                finish();
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        backButton.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                currentVisit.visitNoteBySitter = visitNoteText.getText().toString();
+                                mVisitsAndTracking.writeVisitDataToFile(currentVisit);
+                                finish();
+                            }
+                        });
+                    }
+                }).start();
             }
         });
 
-        setMoodButtons(currentVisitTemp);
+        System.out.println("SET UP MAP SNAP");
         setupMapSnapShot();
 
         FloatingActionButton fab = findViewById(R.id.fab);
@@ -168,18 +176,26 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
 
                 if (currentVisitTemp.mapSnapShotImage == null ||  currentVisitTemp.mapSnapShotImage.equals("None")) {
                     Toast.makeText(MainApplication.getAppContext(), "TAKING MAP SNAPSHOT", Toast.LENGTH_SHORT).show();
-                    takeSnapshot();
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            fab.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    System.out.println("taking MAP SNAP");
+
+                                    takeSnapshot();
+                                }
+                            });
+                        }
+                    }).start();
                     Toast.makeText(MainApplication.getAppContext(), "SENDING VISIT REPORT.", Toast.LENGTH_SHORT).show();
                     SendVisitReportEvent event = new SendVisitReportEvent(visitDetailFinal.appointmentid);
                     EventBus.getDefault().post(event);
-                    //ReloadVisitsEvent visitReportEvent = new ReloadVisitsEvent();
-                    //EventBus.getDefault().post(visitReportEvent);
                 } else {
                     Toast.makeText(MainApplication.getAppContext(), "SENDING VISIT REPORT.", Toast.LENGTH_SHORT).show();
                     SendVisitReportEvent event = new SendVisitReportEvent(visitDetailFinal.appointmentid);
                     EventBus.getDefault().post(event);
-                    //ReloadVisitsEvent visitReportEvent = new ReloadVisitsEvent();
-                    //EventBus.getDefault().post(visitReportEvent);
                 }
             }
         });
@@ -188,25 +204,40 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
     @Override
     protected void onStart() {
         super.onStart();
-        System.out.println("VISIT REPORT ON START");
-        if(null != currentVisitTemp.petPicFileName) {
-            File file = new File(currentVisitTemp.petPicFileName);
-            Uri uri = Uri.fromFile(file);
-            BitmapFactory.Options newOpts = new BitmapFactory.Options();
-            newOpts.inSampleSize = 4;
-            try {
-                InputStream inputStream = getApplicationContext().getContentResolver().openInputStream(uri);
-                final  Bitmap bm = BitmapFactory.decodeStream(inputStream,null, newOpts);
-                petPicture.setImageBitmap(bm);
-            } catch (IOException e) {
-                e.printStackTrace();
+        EventBus.getDefault().register(this);
+        Handler handler = new Handler();
+        Thread photoImportThread = new Thread() {
+            @Override
+            public void run() {
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (currentVisit.petPicFileName != null) {
+                            File file = new File(currentVisit.petPicFileName);
+                            Uri uri = Uri.fromFile(file);
+                            BitmapFactory.Options newOpts = new BitmapFactory.Options();
+                            newOpts.inSampleSize = 4;
+                            try {
+                                InputStream inputStream = getApplicationContext().getContentResolver().openInputStream(uri);
+                                Bitmap bm = BitmapFactory.decodeStream(inputStream,null, newOpts);
+                                petPicture.setImageBitmap(bm);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                });
             }
-        }
+        };
+        photoImportThread.start();
+        System.out.println("VISIT REPORT ON START");
+
     }
     @Override
     protected  void onStop() {
-        super.onStop();
         System.out.println("VISIT REPORT ON STOP");
+        EventBus.getDefault().unregister(this);
+        super.onStop();
     }
     @Override
     protected void onDestroy() {
@@ -265,7 +296,6 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
                     System.out.println("Response from SERVER: " + body);
                     body.close();
                     fCurrentVisit.visitReportUploadStatus = "SUCCESS";
-                    EventBus.getDefault().unregister(this);
                     finish();
                 }
             });
@@ -602,22 +632,34 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
             if (currentVisitTemp.mapSnapShotImage.equals("None") || currentVisitTemp.mapSnapShotImage == null)   {
                 mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.vMap);
                 ViewGroup.LayoutParams params = mapFragment.getView().getLayoutParams();
+                System.out.println("VISIT REPORT: get map async");
                 mapFragment.getMapAsync(this);
             } else {
                 mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.vMap);
                 View mapView = mapFragment.getView();
                 mapView.setVisibility(View.INVISIBLE);
-                Bitmap snapBitMap = BitmapFactory.decodeFile(currentVisitTemp.mapSnapShotImage);
-                snapImg.getLayoutParams().height = width;
-                snapImg.requestLayout();
-                snapImg.setImageBitmap(snapBitMap);
-                snapImg.setVisibility(View.VISIBLE);
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        snapImg.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                System.out.println("VISIT REPORT: ADDING IMG TO SNAP IMG");
+                                Bitmap snapBitMap = BitmapFactory.decodeFile(currentVisitTemp.mapSnapShotImage);
+                                snapImg.getLayoutParams().height = width;
+                                snapImg.requestLayout();
+                                snapImg.setImageBitmap(snapBitMap);
+                                snapImg.setVisibility(View.VISIBLE);
+                            }
+                        });
+                    }
+                }).start();
             }
         }
     }
     private void takeSnapshot() {
         final VisitDetail finalTempVisit = currentVisitTemp;
-        System.out.println("Visit Detail map snapshot value: " + finalTempVisit.mapSnapShotImage);
+        System.out.println("MAP SNAP SHOT IMAGE VALUE: " + finalTempVisit.mapSnapShotImage);
 
         GoogleMap.SnapshotReadyCallback callback = new GoogleMap.SnapshotReadyCallback() {
             @Override
@@ -652,6 +694,7 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
                     try {
                         bos.close();
                         fileOutputStream.close();
+                        System.out.println("PROCESSED MAP SNAP AND SENDING");
                         SendVisitReportEvent event = new SendVisitReportEvent(finalTempVisit.appointmentid);
                         EventBus.getDefault().post(event);
                         mVisitsAndTracking.sendMapSnapToServer(currentVisitTemp);
@@ -698,6 +741,7 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
         Point size = new Point();
         display.getSize(size);
         int width = size.x;
+        System.out.println("VISIT REPORT: MAP READY");
 
         if(!currentVisitTemp.latitude.equals("NONE") && !currentVisitTemp.longitude.equals("NONE")) {
             String latitude = currentVisitTemp.latitude;
@@ -707,6 +751,7 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
             LatLng visitLatLon = new LatLng(lat, lon);
             if(lat != 0 && lon != 0) {
                 iMap.moveCamera(CameraUpdateFactory.newLatLngZoom(visitLatLon, 12.0f));
+                System.out.println("VISIT REPORT: MAP MOVE CAMERA");
 
             }
             ViewGroup.LayoutParams params = mapFragment.getView().getLayoutParams();

@@ -7,7 +7,6 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
@@ -19,7 +18,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
 import android.os.StrictMode;
 import android.os.SystemClock;
 import android.support.v4.app.ActivityCompat;
@@ -32,9 +30,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.leashtime.sitterapp.events.FailedParseEvent;
 import com.leashtime.sitterapp.events.LoginEvent;
-import com.leashtime.sitterapp.events.ReloadVisitsEvent;
 import com.leashtime.sitterapp.events.StatusChangeEvent;
 import com.leashtime.sitterapp.network.SendPhotoServer;
 
@@ -43,7 +39,6 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.IOException;
-import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
@@ -79,7 +74,6 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
     private android.support.v7.widget.RecyclerView recyclerView = null;
     private VisitAdapter visitAdapter = null;
 
-    private MenuItem dateDisplay;
     private TextView noVisitTextView;
     private TextView dateText;
     private TextView monthText;
@@ -118,97 +112,46 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         }
     };
 
-    private static class MainUiThreadUpdate extends Thread {
-
-        WeakReference<MainActivity> activity;
-        String username;
-        String password;
-
-        public MainUiThreadUpdate(MainActivity activity, String username, String password) {
-            this.activity = new WeakReference<>(activity);
-            this.username = username;
-            this.password = password;
-        }
-
-        @Override
-        public void run() {
-            MainActivity myActivity = activity.get();
-            myActivity.runOnUiThread(new MainActivity.MainUiThreadUpdate.MyRunnable(myActivity));
-            myActivity.loginWithNewCredentials(username, password);
-        }
-
-        private static class MyRunnable implements Runnable {
-            private final MainActivity myActivity;
-
-            public MyRunnable(MainActivity myActivity) {
-                this.myActivity = myActivity;
-            }
-
-            @Override
-            public void run() {
-                myActivity.populateAdapter();
-                myActivity.pollingUpdate = false;
-            }
-        }
-    }
-
-    private static class SetupThread extends Thread {
-        WeakReference<MainActivity> activity;
-        public SetupThread(MainActivity activity) {
-            this.activity = new WeakReference<>(activity);
-        }
-        @Override
-        public void run() {
-            MainActivity myActivity = activity.get();
-            myActivity.runOnUiThread(new MainActivity.SetupThread.MyRunnable(myActivity));
-        }
-        private static class MyRunnable implements Runnable {
-            private final MainActivity myActivity;
-            public MyRunnable(MainActivity myActivity) {
-                this.myActivity = myActivity;
-            }
-            @Override
-            public void run() {
-                myActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-                myActivity.connectServiceFirstTime();
-                myActivity.setContentView(R.layout.main_list_visits);
-                myActivity.recyclerView = myActivity.findViewById(R.id.recycler_view);
-                myActivity.addToolbar();
-
-                //if (myActivity.checkNetworkConnection()) {
-                System.out.println("RUN THREAD  CALLING IS NETWORK AVAIL");
-
-                if (myActivity.isNetworkAvailable()) {
-                    System.out.println("Run start thread");
-                    myActivity.launchLogin("noConnection");
-                } else {
-                    myActivity.launchLogin("connection");
-                }
-            }
-        }
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //TypefaceUtil.overrideFont(getApplicationContext(), "SERIF", "fonts/Lato-Regular.ttf");
+
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
         StrictMode.setThreadPolicy(policy);
-        //TypefaceUtil.overrideFont(getApplicationContext(), "SERIF", "fonts/Lato-Regular.ttf");
         mContext = this.getApplicationContext();
         sVisitsAndTracking = VisitsAndTracking.getInstance();
+        formatDateComparison = new SimpleDateFormat("yyyyMMdd");
         initialLogin = TRUE;
         initialLogin2 = TRUE;
         pollingUpdate = FALSE;
         isBackground = FALSE;
         formatDateComparison = new SimpleDateFormat("yyyyMMdd");
-
-        MainActivity.SetupThread threadSetup = new MainActivity.SetupThread(this);
-        Handler mainThreadHandler = new Handler(Looper.getMainLooper());
-        mainThreadHandler.post(threadSetup);
         EventBus.getDefault().register(this);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        setContentView(R.layout.main_list_visits);
+        addToolbar();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
 
+                System.out.println("ON CREATE THREAD CALLED");
+                connectServiceFirstTime();
+                recyclerView = findViewById(R.id.recycler_view);
+
+                if (isNetworkAvailable()) {
+                    System.out.println("Run start thread  CONNECTION");
+                    launchLogin("connection");
+                } else {
+                    System.out.println("Run start thread NO CONNECTION");
+                    launchLogin("noConnection");
+                }
+            }
+        }).start();
     }
     public void populateAdapter() {
+        System.out.println("START POPULATE ADAPTER");
+
         if (recyclerView == null) {
             System.out.println("Recycle view NULL, recreating");
             recyclerView = findViewById(R.id.recycler_view);
@@ -218,31 +161,44 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
 
         if (recyclerView.getAdapter() != null) {
             System.out.println("Recycle view get / set adapter and NOT NULL");
-            recyclerView.swapAdapter(visitAdapter,FALSE);
+            recyclerView.setAdapter(visitAdapter);
+            //SWAP ADAPATER?
         } else {
             System.out.println("Recycle view swap adapter");
             recyclerView.setAdapter(visitAdapter);
         }
-        visitAdapter.notifyDataSetChanged();
+
+        System.out.println("FINISH POPULATE ADAPTER");
+        Handler handler = new Handler();
+        Thread syncVisitFileThread = new Thread() {
+            @Override
+            public void run() {
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        for (int i = 0; i < sVisitsAndTracking.visitData.size();  i++) {
+                            System.out.println("Sync with visit file thread, visit number: " + i);
+                            VisitDetail visitDetail = (VisitDetail) sVisitsAndTracking.visitData.get(i);
+                            sVisitsAndTracking.syncVisitWithFile(visitDetail);
+                        }
+                    }
+                });
+            }
+        };
+        syncVisitFileThread.start();
+
+
     }
-    public Date getToday() {
-        Calendar c2 = Calendar.getInstance();
-        c2.add(Calendar.HOUR, 1);
-        c2.set(Calendar.MINUTE, 0);
-        c2.set(Calendar.SECOND, 0);
-        c2.set(Calendar.MILLISECOND, 0);
-        Date todayRightNow = new Date();
-        return todayRightNow;
-    }
+
     @Override
     protected void onStart() {
         super.onStart();
-        System.out.println("ON START CALLING IS NETWORK AVAIL");
+        System.out.println("ON START");
 
-        if (isNetworkAvailable()) {
-            System.out.println("onStart after check network connection");
-            resendBadRequest();
-            if (MainApplication.wasInBackground) {
+        if (MainApplication.wasInBackground) {
+            System.out.println("onStart coming from background");
+            if (isNetworkAvailable()) {
+                resendBadRequest();
                 Date todayRightNow = getToday();
                 if (dateText != null && monthText != null) {
                     setToolbarDate();
@@ -251,47 +207,69 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                 MainApplication.wasInBackground = false;
                 if (!initialLogin && !initialLogin2) {
                     pollingUpdate = true;
-                    getVisits(sVisitsAndTracking.mPreferences.getString("username",""), sVisitsAndTracking.mPreferences.getString("password",""), daysBefore(), daysLater(), "0");
+                    getVisits(sVisitsAndTracking.mPreferences.getString("username", ""), sVisitsAndTracking.mPreferences.getString("password", ""), daysBefore(), daysLater(), "0");
                 }
 
                 sVisitsAndTracking.onWhichDate = todayRightNow;
                 sVisitsAndTracking.showingWhichDate = todayRightNow;
                 sVisitsAndTracking.todayDateFormat = sVisitsAndTracking.formatter.format(sVisitsAndTracking.onWhichDate);
                 sVisitsAndTracking.showingDateFormat = sVisitsAndTracking.formatter.format(sVisitsAndTracking.showingWhichDate);
-            }
-            else {
+                Intent intent = new Intent(this, TrackerServiceSitter.class);
+
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        System.out.println("BINDING TO Tracker Service coming from background");
+                        startService(intent);
+                        bindService(intent, mConnection, 0);
+                        serviceBound = true;
+                        System.out.println("BOUND TO Tracker Service coming from background");
+                    }
+                }).start();
+
+            } else if (initialLogin && initialLogin2) {
+                System.out.println("Launching login");
+                if (isNetworkAvailable()) {
+                    launchLogin("connection");
+                } else {
+                    launchLogin("noConnection");
+                }
+            } else {
+                System.out.println("Updating the visit adapter");
                 if (visitAdapter != null)
                     visitAdapter.notifyDataSetChanged();
             }
         } else {
-            Toast.makeText(MainApplication.getAppContext(), "NO NETWORK CONNECTION", Toast.LENGTH_SHORT).show();
-            Intent intent = new Intent(this, TrackerServiceSitter.class);
-            startService(intent);
-            bindService(intent, mConnection, 0);
-            serviceBound = true;
-        }
 
-        //Intent intent = new Intent(this, TrackerServiceSitter.class);
-        //startService(intent);
-        //bindService(intent, mConnection, 0);
-       // serviceBound = true;
+            if (visitAdapter != null) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        visitAdapter.notifyDataSetChanged();
+                        if(!isNetworkAvailable()) {
+                            Toast.makeText(MainApplication.getAppContext(), "NO NETWORK CONNECTION", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+            }
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    System.out.println("START LOCATION TRACKER SERVICE");
+                    Intent intent = new Intent(MainActivity.this, TrackerServiceSitter.class);
+                    startService(intent);
+                    bindService(intent, mConnection, 0);
+                    serviceBound = true;
+                    System.out.println("BOUND LOCATION TRACKER SERVICE");
+                }
+            }).start();
+
+        }
     }
     @Override
     protected void onResume() {
         super.onResume();
-        IntentFilter intentFilter = new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE");
-        receiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                System.out.println("BROAD CAST RECEIVER CALLING IS NETWORK AVAIL");
-                if (isNetworkAvailable()) {
-                    Toast.makeText(getApplicationContext(), "NETWORK IS AVAILABLE", Toast.LENGTH_LONG).show();
-                } else {
-                    Toast.makeText(getApplicationContext(), "NO NETWORK", Toast.LENGTH_LONG).show();
-                }
-            }
-        };
-        this.registerReceiver(receiver, intentFilter);
     }
     @Override
     protected void onPause() {
@@ -312,12 +290,6 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
             //unbindService(mConnection);
             //serviceBound = false;
         }
-
-        if (visitAdapter != null) {
-            System.out.println("Visit adapter is NOT null");
-        }
-
-        this.unregisterReceiver(this.receiver);
         System.out.println("Main Activity ON STOP");
         super.onStop();
     }
@@ -328,24 +300,28 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         super.onDestroy();
     }
     public void connectServiceFirstTime() {
+        System.out.println("CONNECTING TO TRACKER SERVICE... CHECKING ACCESS RIGHTS");
         if (canAccessLocation()) {
+            System.out.println("PUSHING TRACKER SERVICE TO THE BACKGROUND ACTIVE MODE");
             Intent intent = new Intent(this, TrackerServiceSitter.class);
             startService(intent);
             bindService(intent, mConnection, 0);
             serviceBound = true;
+            System.out.println("TRACKER SERVICE BOUND");
+
         }
     }
     public void loginWithNewCredentials(final String username, final String password) {
         if (initialLogin && initialLogin2) {
             Date today = new Date();
             String dateBeginEnd = dateFormat.format(today);
+            System.out.println("GET VISITS");
             getVisits(username, password, dateBeginEnd, dateBeginEnd, "1");
         } else if (!initialLogin && initialLogin2) {
+            System.out.println("GET 2 VISITS");
             getVisits(username, password, daysBefore(), daysLater(), "1");
         }
     }
-
-
     private void getVisits(final String username, final String password, final String dateForVisits, final String endDate, final String firstLogin) {
         HttpUrl.Builder urlBuilderGetVisits = HttpUrl.parse("https://leashtime.com/native-prov-multiday-list.php")
                 .newBuilder();
@@ -367,10 +343,11 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                 .header("User-Agent", sVisitsAndTracking.USER_AGENT)
                 .build();
 
-        System.out.println(request);
+        System.out.println("BUILT OKHTTP REQUEST");
         if (initialLogin || initialLogin2 || pollingUpdate) {
 
             if (recyclerView != null) {
+                System.out.println("RECYCLER VIEW IS TEMP FROZEN AND REMOVED ALL VIEWS");
                 recyclerView.setLayoutFrozen(TRUE);
                 recyclerView.removeAllViewsInLayout();
             }
@@ -387,7 +364,7 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                     } else if (initialLogin && initialLogin2) {
                         launchLogin("noConnection");
                     } else if (!initialLogin && initialLogin2) {
-
+                        Toast.makeText(MainApplication.getAppContext(), "CONNECTION PROBLEM", Toast.LENGTH_SHORT).show();
                     }
                 }
 
@@ -399,13 +376,17 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
 
                     if (!response.isSuccessful()) {
                         sVisitsAndTracking.lastLoginResponseCode = "NETWORK UNAVAILABLE";
+                        Toast.makeText(MainApplication.getAppContext(), "CONNECTION PROBLEM", Toast.LENGTH_SHORT).show();
                         launchLogin("noConnection");
                         throw new IOException("Unexpected code " + response);
                     } else {
                         if (loginCodeString.equals("OK")) {
                             if (initialLogin && initialLogin2) {
                                 sVisitsAndTracking.onWhichVisitID = "0000";
+                                System.out.println("Parsing data response");
                                 sVisitsAndTracking.parseResponseVisitData(responseData);
+                                System.out.println("Finish parsing data response");
+
                                 sVisitsAndTracking.prefSetUserName(username);
                                 sVisitsAndTracking.prefSetPass(password);
                                 initialLogin = false;
@@ -423,6 +404,8 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                                     }
                                 };
                                 new Thread(secondRequestRunnable).start();
+
+
                                 getVisitResponseBody.close();
                             } else if (!initialLogin && initialLogin2) {
                                 initialLogin2 = false;
@@ -434,12 +417,14 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                                     @Override
                                     public void run() {
                                         populateAdapter();
-                                        Intent intent = new Intent(MainActivity.this, TrackerServiceSitter.class);
-                                        startService(intent);
-                                        bindService(intent, mConnection, 0);
-                                        serviceBound = true;
+                                        //Intent intent = new Intent(MainActivity.this, TrackerServiceSitter.class);
+                                        //startService(intent);
+                                        //bindService(intent, mConnection, 0);
+                                        //serviceBound = true;
                                     }
                                 });
+                                getVisitResponseBody.close();
+
                             }
                         } else {
                             launchLogin("noConnection");
@@ -484,25 +469,9 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         }
     }
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onFailedParseEvent(FailedParseEvent event) {
-        if (sVisitsAndTracking.lastLoginResponseCode.equals("BAD USERNAME/PASSWORD")) {
-            launchLogin("noConnection");
-        } else {
-            getVisits(event.userName, event.passWord, daysBefore(), daysLater(), "1");
-        }
-    }
-    @Subscribe(threadMode = ThreadMode.MAIN)
     public void onLoginEvent(LoginEvent event) {
         loginWithNewCredentials(event.username, event.password);
         visitPollingUpdates();
-    }
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onReloadVisitsEvent(ReloadVisitsEvent event) {
-        //setToolbarDate();
-        MainActivity.MainUiThreadUpdate updateList = new MainActivity.MainUiThreadUpdate(this, sVisitsAndTracking.USERNAME, sVisitsAndTracking.PASSWORD);
-        updateList.start();
-        Handler mainThreadHandler = new Handler(Looper.getMainLooper());
-        mainThreadHandler.post(updateList);
     }
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onStatusChangeEvent(StatusChangeEvent status) {
@@ -836,12 +805,15 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                     sVisitsAndTracking.showClientName = false;
                     editor.putString("showClientName","NO");
                     item.setChecked(FALSE);
+                    visitAdapter.notifyDataSetChanged();
+
                 } else {
                     sVisitsAndTracking.showClientName = true;
                     editor.putString("showClientName","YES");
                     item.setChecked(TRUE);
+                    visitAdapter.notifyDataSetChanged();
+
                 }
-                visitAdapter.notifyDataSetChanged();
                 editor.apply();
                 return true;
             case R.id.showKey:
@@ -1047,16 +1019,20 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
     public  boolean isNetworkAvailable () {
         System.out.println("Is network available called");
         boolean success = false;
-        if (checkNetworkConnection()) {
+        Boolean checkNetworkStatus = checkNetworkConnection();
+        if (checkNetworkStatus && !initialLogin && !initialLogin2) {
+            HttpURLConnection connection= null;
             try {
                 URL url = new URL("https://google.com");
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection = (HttpURLConnection) url.openConnection();
                 connection.setConnectTimeout(10000);
                 connection.connect();
+                System.out.println("Trying to connect to Google.com and response code is: " +connection.getResponseCode());
                 success = connection.getResponseCode() == 200;
                 if (networkStatusView != null) {
                     networkStatusView.setText("OK");
                     networkStatusView.setTextColor(Color.WHITE);
+                    connection.disconnect();
                 }
                 System.out.println("Internet is available");
             } catch (IOException e) {
@@ -1064,11 +1040,19 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                 if (networkStatusView != null) {
                     networkStatusView.setText("CANNOT CONNECT");
                     networkStatusView.setTextColor(Color.RED);
+                    connection.disconnect();
                 }
                 return false;
             }
-        } else {
-            return false;
+        } else if (checkNetworkStatus && initialLogin && initialLogin2){
+
+            return true;
+
+        } else if (!checkNetworkStatus) {
+
+            success = false;
+            return success;
+
         }
         return success;
     }
@@ -1167,5 +1151,14 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
             dayWeek = "SAT";
         }
         return dayWeek;
+    }
+    public Date getToday() {
+        Calendar c2 = Calendar.getInstance();
+        c2.add(Calendar.HOUR, 1);
+        c2.set(Calendar.MINUTE, 0);
+        c2.set(Calendar.SECOND, 0);
+        c2.set(Calendar.MILLISECOND, 0);
+        Date todayRightNow = new Date();
+        return todayRightNow;
     }
 }

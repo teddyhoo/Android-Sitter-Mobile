@@ -176,7 +176,8 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                     System.out.println("Swipe layout ON close method called");
                     VisitDetail swipeTag = (VisitDetail)view.getTag();
                     configureRowView(swipeTag);
-                    notifyDataSetChanged();
+                    bind(swipeTag.appointmentid);
+                    //notifyDataSetChanged();
                 }
                 @Override
                 public void onOpened(SwipeRevealLayout view) {
@@ -222,6 +223,7 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                     timeWindow.setText(visitDetail.timeofday);
                     if(sVisitsAndTracking.showClientName) {
                         clientName.setText(visitDetail.clientname);
+                        clientName.setVisibility(View.VISIBLE);
                     } else {
                         clientName.setVisibility(View.INVISIBLE);
                     }
@@ -268,16 +270,24 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                 frontLayout.setBackgroundColor(Color.BLUE);
                 statusText.setText("COMPLETE");
                 arriveLayout.setBackgroundColor(ContextCompat.getColor(mContext, R.color.arrive_2_green));
+
                 arriveImage.setVisibility(View.INVISIBLE);
                 arriveImage.setImageDrawable(null);
                 arriveImage.setBackground(null);
                 arriveImage.setImageBitmap(null);
                 arriveImage.setImageDrawable(arriveIcon);
                 arriveImage.setVisibility(View.VISIBLE);
+
                 petNames.setTextColor(Color.WHITE);
                 serviceName.setTextColor(Color.WHITE);
                 timeWindow.setTextColor(Color.WHITE);
                 clientName.setTextColor(Color.WHITE);
+                if(sVisitsAndTracking.showClientName) {
+                    clientName.setText(visit.clientname);
+                    clientName.setVisibility(View.VISIBLE);
+                } else {
+                    clientName.setVisibility(View.INVISIBLE);
+                }
                 writeVisitReportButton.setImageDrawable(visitReportIcon);
                 String cleanArrive = trimTime(visit.arrived);
                 timeWindow.setText(cleanArrive);
@@ -316,6 +326,12 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                 petNames.setTextColor(Color.WHITE);
                 serviceName.setTextColor(Color.WHITE);
                 clientName.setTextColor(Color.WHITE);
+                if(sVisitsAndTracking.showClientName) {
+                    clientName.setText(visit.clientname);
+                    clientName.setVisibility(View.VISIBLE);
+                } else {
+                    clientName.setVisibility(View.INVISIBLE);
+                }
                 CharSequence startFinish = new String(' ' + prettyDateOnlyTime(visit.arrived) + " to " + prettyDateOnlyTime(visit.completed));
                 timeWindow.setTextColor(Color.YELLOW);
                 timeWindow.setText(startFinish);
@@ -336,8 +352,6 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                     writeVisitReportButton.setBackground(null);
                     writeVisitReportButton.setVisibility(View.INVISIBLE);
                     writeVisitReportButton.setImageDrawable(null);
-                    writeVisitReportButton.setBackground(null);
-                    writeVisitReportButton.setImageBitmap(null);
                     writeVisitReportButton.setImageDrawable(envelope);
                     writeVisitReportButton.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
                     writeVisitReportButton.setVisibility(View.VISIBLE);
@@ -353,6 +367,12 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                 if (timerCounter != null) {
                     timerCounter.setVisibility(View.INVISIBLE);
                 }
+                if(sVisitsAndTracking.showClientName) {
+                    clientName.setText(visit.clientname);
+                    clientName.setVisibility(View.VISIBLE);
+                } else {
+                    clientName.setVisibility(View.INVISIBLE);
+                }
             } else if (visit.status.equals("future")) {
 
                 currentRow.setBackgroundColor(ContextCompat.getColor(mContext, R.color.light_blue_200));
@@ -361,13 +381,24 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                 petNames.setTextColor(Color.BLACK);
                 serviceName.setTextColor(Color.BLACK);
                 timeWindow.setTextColor(Color.BLACK);
-                clientName.setTextColor(Color.BLACK);
                 arriveImage.setVisibility(View.INVISIBLE);
                 if (timerCounter != null) {
                     timerCounter.setVisibility(View.INVISIBLE);
                 }
+                writeVisitReportButton.setBackground(null);
+                writeVisitReportButton.setVisibility(View.INVISIBLE);
+                writeVisitReportButton.setImageDrawable(null);
+                if (null != visit.dateTimeVisitReportSubmit) {
+                    writeVisitReportButton.setImageDrawable(envelope);
+                    writeVisitReportButton.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+                    writeVisitReportButton.setVisibility(View.VISIBLE);
+                } else {
+                    writeVisitReportButton.setImageDrawable(visitReportIcon);
+                    writeVisitReportButton.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+                    writeVisitReportButton.setVisibility(View.VISIBLE);
+                }
 
-            } else if (visit.status.equals("late")) {
+                } else if (visit.status.equals("late")) {
 
                 currentRow.setBackgroundColor(ContextCompat.getColor(mContext, R.color.yellow_200));
                 frontLayout.setBackgroundColor(ContextCompat.getColor(mContext, R.color.yellow_200));
@@ -377,13 +408,29 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                 timeWindow.setTextColor(Color.BLACK);
                 keyIDField.setTextColor(Color.BLACK);
                 clientName.setTextColor(Color.BLACK);
+                if(sVisitsAndTracking.showClientName) {
+                    clientName.setText(visit.clientname);
+                    clientName.setVisibility(View.VISIBLE);
+                } else {
+                    clientName.setVisibility(View.INVISIBLE);
+                }
                 arriveImage.setVisibility(View.INVISIBLE);
                 if (timerCounter != null) {
                     timerCounter.setVisibility(View.INVISIBLE);
                 }
+                writeVisitReportButton.setBackground(null);
+                writeVisitReportButton.setVisibility(View.INVISIBLE);
+                writeVisitReportButton.setImageDrawable(null);
+                if (null != visit.dateTimeVisitReportSubmit) {
+                    writeVisitReportButton.setImageDrawable(envelope);
+                    writeVisitReportButton.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+                    writeVisitReportButton.setVisibility(View.VISIBLE);
+                } else {
+                    writeVisitReportButton.setImageDrawable(visitReportIcon);
+                    writeVisitReportButton.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+                    writeVisitReportButton.setVisibility(View.VISIBLE);
+                }
             }
-
-
         }
         public void setupTimerView() {
             if (timerCounter != null) {

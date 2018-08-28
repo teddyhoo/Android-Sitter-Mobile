@@ -222,18 +222,6 @@ public class TrackerServiceSitter extends Service
         private VisitsAndTracking visitsAndTracking;
         private final SimpleDateFormat rightNowFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
 
-        /*public MyServiceRunnable(FusedLocationProviderClient fLPI) {
-            this.fusedLocationProviderInstance = fLPI;
-            mLocationCallback = new LocationCallback() {
-                @Override
-                public void onLocationResult(LocationResult locationResult) {
-                    super.onLocationResult(locationResult);
-                    mLastLocation = locationResult.getLastLocation();
-                    mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
-                }
-            };
-        }*/
-
         public MyServiceRunnable() {
         }
 
@@ -250,7 +238,6 @@ public class TrackerServiceSitter extends Service
                         .addOnConnectionFailedListener(this)
                         .build();
             mGoogleApiClient.connect();
-
         }
 
         @Override

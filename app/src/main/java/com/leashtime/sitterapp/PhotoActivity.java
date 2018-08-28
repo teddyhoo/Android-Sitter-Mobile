@@ -121,8 +121,6 @@ public class PhotoActivity extends AppCompatActivity{
             if (event.appointmentID.equals(visitItem.appointmentid)) {
                 sVisitsAndTracking.writeVisitDataToFile(visitItem);
                 sendPhotoToServer(visitItem);
-                //ReloadVisitsEvent visitReportEvent = new ReloadVisitsEvent();
-                //EventBus.getDefault().post(visitReportEvent);
             }
             pos++;
         }
@@ -207,7 +205,6 @@ public class PhotoActivity extends AppCompatActivity{
                 Display display = getWindowManager().getDefaultDisplay();
                 Point size = new Point();
                 display.getSize(size);
-                //System.out.println("Display width: " + size.x + " height: "  + size.y);
                 int width = size.x;
 
                 for (VisitDetail visitDetail : sVisitsAndTracking.visitData) {
@@ -556,8 +553,6 @@ public class PhotoActivity extends AppCompatActivity{
                         dimension = widthBM;
                     }
 
-
-                     System.out.println("Bitmap size: " +widthBM + ", " + heightBM +  ",  netWidthHeight: " + netHeight + ", " +  netWidth + " ---> " + "orientation: " +  orientation + ", dimension: " + dimension);
                     ByteArrayOutputStream bos = null;
 
                     try {

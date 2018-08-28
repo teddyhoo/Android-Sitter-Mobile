@@ -228,7 +228,7 @@ public class VisitsAndTracking {
 
             petList = (ArrayList<Map<String, Object>>) petData;
 
-            System.out.println("Pet Data raw: " + petList);
+            //System.out.println("Pet Data raw: " + petList);
             for (Map<String, Object> petMap : petList) {
                 PetsForClient petsForClient = new PetsForClient();
                 HashMap<String,String> petFields = new HashMap<>();
@@ -464,6 +464,7 @@ public class VisitsAndTracking {
                 addVisitList(visitOrFlagItem);
             }
 
+
         } catch (JSONException e) {
             FailedParseEvent failedParseEvent = new FailedParseEvent(USERNAME, PASSWORD);
             EventBus.getDefault().post(failedParseEvent);
@@ -560,7 +561,7 @@ public class VisitsAndTracking {
                     onWhichVisits.add(visit.appointmentid );
                 }
             }
-            syncVisitWithFile(visit);
+            //syncVisitWithFile(visit);
         }  else {
             try {
                 Date date = formatter.parse(visit.shortNaturalDate);
@@ -934,8 +935,8 @@ public class VisitsAndTracking {
         }
         tempVisitData.clear();
 
-        System.out.println("Visit Data count: " + visitData.size() + ", Days After Visit Count: " + daysAfterVisit.size() + ", Days before visit count: " + daysBeforeVisit.size() + ", Temp: " + tempVisitData.size());
-        System.out.println("Flag count: " + mFlagData.size());
+        //System.out.println("Visit Data count: " + visitData.size() + ", Days After Visit Count: " + daysAfterVisit.size() + ", Days before visit count: " + daysBeforeVisit.size() + ", Temp: " + tempVisitData.size());
+       // System.out.println("Flag count: " + mFlagData.size());
     }
     public void clearPrevNextData () {
 

@@ -149,7 +149,6 @@ public class ViewVisitDetail extends AppCompatActivity {
             docButton.getLayoutParams().width = width;
             docButton.setBackground(docAttachIcon);
             docButton.setScaleType(ImageView.ScaleType.FIT_XY);
-            //System.out.println("H: " + height + ", W: " + width);
             docButton.setPadding(60,50,30,10);
 
             TextView docText = new TextView(this);
@@ -356,7 +355,6 @@ public class ViewVisitDetail extends AppCompatActivity {
         sorted.putAll(clientDetails.customClientFieldsSort);
         for (Map.Entry<String,Object> entry : sorted.entrySet()) {
             String dictKey =  entry.getKey();
-            System.out.println("<DETAIL VIEW> Key: " + dictKey);
             HashMap dictVal = (HashMap)entry.getValue();
 
             Set allKeys = dictVal.keySet();
@@ -372,7 +370,6 @@ public class ViewVisitDetail extends AppCompatActivity {
                 }
             }
 
-            System.out.println("Value: " + val);
 
             if(!val.equals("NULL VALUE")) {
                 if(val.equals("1")) {
@@ -390,7 +387,6 @@ public class ViewVisitDetail extends AppCompatActivity {
         Context context = this.getApplicationContext();
         int numberImages = clientDetails.petList.size();
 
-        System.out.println("Number of images: " + numberImages);
         LinearLayout petPhotoLinLay = new LinearLayout(this);
         petPhotoLinLay.setOrientation(LinearLayout.HORIZONTAL);
 
@@ -428,7 +424,6 @@ public class ViewVisitDetail extends AppCompatActivity {
             petImageView.getLayoutParams().width = width;
             petImageView.setScaleType(ImageView.ScaleType.FIT_XY);
             petImageView.setPadding(10,10,10,10);
-            System.out.println("H: " + height + ", W: " + width);
             GlideApp.with(getApplicationContext()).
                     load(url).
                     diskCacheStrategy(DiskCacheStrategy.ALL).

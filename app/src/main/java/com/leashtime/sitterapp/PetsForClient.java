@@ -81,7 +81,6 @@ public class PetsForClient {
             customPetDic.put("errataIndex",errataIndexString);
             petDocsAttach.add(customDocInfo);
             errataCounter = errataCounter + 1;
-            //System.out.println("dkey: " + customDocKey + " , val: " + customDocVal);
         }
 
     }

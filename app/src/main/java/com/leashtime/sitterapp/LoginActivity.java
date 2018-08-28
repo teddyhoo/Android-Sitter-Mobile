@@ -38,7 +38,7 @@ public class LoginActivity extends AppCompatActivity {
         Bundle extras = this.getIntent().getExtras();
 
         String connexStatus = (String)extras.get("networkStatus");
-        System.out.println("LOGIN ACTIVITY Network status: " + connexStatus);
+        //System.out.println("LOGIN ACTIVITY Network status: " + connexStatus);
         VisitsAndTracking sVisitsAndTracking = VisitsAndTracking.getInstance();
         int osVersion = Build.VERSION.SDK_INT;
         String manufacturer = Build.MANUFACTURER;
@@ -102,7 +102,7 @@ public class LoginActivity extends AppCompatActivity {
                 String loginStatus = loginValidate(username,password);
 
                 if(loginStatus.equals("OK")) {
-                    System.out.println("Login status is OK");
+                    //System.out.println("Login status is OK");
                     sVisitsAndTracking.prefSetUserName(username);
                     LoginEvent logEvent = new LoginEvent(username,password);
                     EventBus.getDefault().post(logEvent);
@@ -179,3 +179,6 @@ public class LoginActivity extends AppCompatActivity {
     }
 
 }
+
+
+
