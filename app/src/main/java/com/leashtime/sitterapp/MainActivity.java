@@ -31,6 +31,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.leashtime.sitterapp.events.LoginEvent;
+import com.leashtime.sitterapp.events.ReloadVisitsEvent;
 import com.leashtime.sitterapp.events.StatusChangeEvent;
 import com.leashtime.sitterapp.network.SendPhotoServer;
 
@@ -47,6 +48,7 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -111,7 +113,6 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
             serviceBound = false;
         }
     };
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -134,317 +135,161 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-
-                System.out.println("ON CREATE THREAD CALLED");
                 connectServiceFirstTime();
                 recyclerView = findViewById(R.id.recycler_view);
-
                 if (isNetworkAvailable()) {
-                    System.out.println("Run start thread  CONNECTION");
                     launchLogin("connection");
                 } else {
-                    System.out.println("Run start thread NO CONNECTION");
                     launchLogin("noConnection");
                 }
             }
         }).start();
     }
     public void populateAdapter() {
-        System.out.println("START POPULATE ADAPTER");
-
         if (recyclerView == null) {
-            System.out.println("Recycle view NULL, recreating");
             recyclerView = findViewById(R.id.recycler_view);
         }
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         visitAdapter = new VisitAdapter(this, sVisitsAndTracking.visitData);
 
         if (recyclerView.getAdapter() != null) {
-            System.out.println("Recycle view get / set adapter and NOT NULL");
             recyclerView.setAdapter(visitAdapter);
             //SWAP ADAPATER?
         } else {
-            System.out.println("Recycle view swap adapter");
             recyclerView.setAdapter(visitAdapter);
         }
 
-        System.out.println("FINISH POPULATE ADAPTER");
-        Handler handler = new Handler();
-        Thread syncVisitFileThread = new Thread() {
-            @Override
-            public void run() {
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        for (int i = 0; i < sVisitsAndTracking.visitData.size();  i++) {
-                            System.out.println("Sync with visit file thread, visit number: " + i);
-                            VisitDetail visitDetail = (VisitDetail) sVisitsAndTracking.visitData.get(i);
-                            sVisitsAndTracking.syncVisitWithFile(visitDetail);
+        if (!initialLogin && initialLogin2) {
+            Handler handler = new Handler();
+            Thread syncVisitFileThread = new Thread() {
+                @Override
+                public void run() {
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            for (int i = 0; i < sVisitsAndTracking.visitData.size();  i++) {
+                                VisitDetail visitDetail = (VisitDetail) sVisitsAndTracking.visitData.get(i);
+                                sVisitsAndTracking.syncVisitWithFile(visitDetail);
+                            }
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    visitAdapter.notifyDataSetChanged();
+                                }
+                            });
                         }
-                    }
-                });
-            }
-        };
-        syncVisitFileThread.start();
+                    });
+                }
+            };
+            syncVisitFileThread.start();
 
 
+        } else if (!initialLogin && !initialLogin2 && pollingUpdate) {
+
+
+            Handler handler = new Handler();
+            Thread syncVisitFileThread = new Thread() {
+                @Override
+                public void run() {
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            for (int i = 0; i < sVisitsAndTracking.visitData.size();  i++) {
+                                VisitDetail visitDetail = (VisitDetail) sVisitsAndTracking.visitData.get(i);
+                                sVisitsAndTracking.syncVisitWithFile(visitDetail);
+                            }
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    pollingUpdate = false;
+                                    visitAdapter.notifyDataSetChanged();
+                                }
+                            });
+                        }
+                    });
+                }
+            };
+            syncVisitFileThread.start();
+
+        }
     }
-
     @Override
-    protected void onStart() {
+    protected void          onStart() {
         super.onStart();
         System.out.println("ON START");
-
         if (MainApplication.wasInBackground) {
-            System.out.println("onStart coming from background");
-            if (isNetworkAvailable()) {
-                resendBadRequest();
-                Date todayRightNow = getToday();
-                if (dateText != null && monthText != null) {
-                    setToolbarDate();
-                }
-                Toast.makeText(getApplicationContext(), "UPDATING VISITS, PLEASE WAIT", Toast.LENGTH_LONG).show();
-                MainApplication.wasInBackground = false;
-                if (!initialLogin && !initialLogin2) {
-                    pollingUpdate = true;
-                    getVisits(sVisitsAndTracking.mPreferences.getString("username", ""), sVisitsAndTracking.mPreferences.getString("password", ""), daysBefore(), daysLater(), "0");
-                }
-
-                sVisitsAndTracking.onWhichDate = todayRightNow;
-                sVisitsAndTracking.showingWhichDate = todayRightNow;
-                sVisitsAndTracking.todayDateFormat = sVisitsAndTracking.formatter.format(sVisitsAndTracking.onWhichDate);
-                sVisitsAndTracking.showingDateFormat = sVisitsAndTracking.formatter.format(sVisitsAndTracking.showingWhichDate);
+            if (isNetworkAvailable() && !initialLogin && !initialLogin2) {
                 Intent intent = new Intent(this, TrackerServiceSitter.class);
 
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        System.out.println("BINDING TO Tracker Service coming from background");
+                        resendBadRequest();
                         startService(intent);
                         bindService(intent, mConnection, 0);
                         serviceBound = true;
-                        System.out.println("BOUND TO Tracker Service coming from background");
                     }
                 }).start();
 
+                Toast.makeText(getApplicationContext(), "UPDATING VISITS, PLEASE WAIT", Toast.LENGTH_LONG).show();
+
+                MainApplication.wasInBackground = false;
+                if (!initialLogin && !initialLogin2) {
+                    pollingUpdate = true;
+                    getVisits(sVisitsAndTracking.mPreferences.getString("username", ""), sVisitsAndTracking.mPreferences.getString("password", ""), daysBefore(), daysLater(), "0");
+                }
+                Date todayRightNow = getToday();
+                if (dateText != null && monthText != null) {
+                    setToolbarDate();
+                }
+                sVisitsAndTracking.onWhichDate = todayRightNow;
+                sVisitsAndTracking.showingWhichDate = todayRightNow;
+                sVisitsAndTracking.todayDateFormat = sVisitsAndTracking.formatter.format(sVisitsAndTracking.onWhichDate);
+                sVisitsAndTracking.showingDateFormat = sVisitsAndTracking.formatter.format(sVisitsAndTracking.showingWhichDate);
+
             } else if (initialLogin && initialLogin2) {
-                System.out.println("Launching login");
+
                 if (isNetworkAvailable()) {
                     launchLogin("connection");
                 } else {
                     launchLogin("noConnection");
                 }
-            } else {
-                System.out.println("Updating the visit adapter");
-                if (visitAdapter != null)
-                    visitAdapter.notifyDataSetChanged();
             }
-        } else {
+        }
+        else {
+            Date todayRightNow = getToday();
+            if (dateText != null && monthText != null) {
+                setToolbarDate();
+            }
+            sVisitsAndTracking.onWhichDate = todayRightNow;
+            sVisitsAndTracking.showingWhichDate = todayRightNow;
+            sVisitsAndTracking.todayDateFormat = sVisitsAndTracking.formatter.format(sVisitsAndTracking.onWhichDate);
+            sVisitsAndTracking.showingDateFormat = sVisitsAndTracking.formatter.format(sVisitsAndTracking.showingWhichDate);
 
-            if (visitAdapter != null) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (visitAdapter != null)
                         visitAdapter.notifyDataSetChanged();
-                        if(!isNetworkAvailable()) {
-                            Toast.makeText(MainApplication.getAppContext(), "NO NETWORK CONNECTION", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                });
-            }
+                }
+            });
+
+            System.out.println("ON START - BIND SERVICE");
 
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    System.out.println("START LOCATION TRACKER SERVICE");
                     Intent intent = new Intent(MainActivity.this, TrackerServiceSitter.class);
                     startService(intent);
                     bindService(intent, mConnection, 0);
                     serviceBound = true;
-                    System.out.println("BOUND LOCATION TRACKER SERVICE");
                 }
             }).start();
-
         }
     }
+
     @Override
-    protected void onResume() {
-        super.onResume();
-    }
-    @Override
-    protected void onPause() {
-        super.onPause();
-    }
-    @Override
-    protected void onStop() {
-        if (!initialLogin && !initialLogin2) {
-            if (serviceBound) {
-                System.out.println("Service is bound and moving to foreground");
-                trackerServiceSitter.foreground();
-                unbindService(mConnection);
-                serviceBound = false;
-            } else {
-                System.out.println("Service NOT bound STOPPING SERVICE");
-                stopService(new Intent(this, TrackerServiceSitter.class));
-            }
-            //unbindService(mConnection);
-            //serviceBound = false;
-        }
-        System.out.println("Main Activity ON STOP");
-        super.onStop();
-    }
-    @Override
-    protected void onDestroy() {
-        cleanVisitData();
-        EventBus.getDefault().unregister(this);
-        super.onDestroy();
-    }
-    public void connectServiceFirstTime() {
-        System.out.println("CONNECTING TO TRACKER SERVICE... CHECKING ACCESS RIGHTS");
-        if (canAccessLocation()) {
-            System.out.println("PUSHING TRACKER SERVICE TO THE BACKGROUND ACTIVE MODE");
-            Intent intent = new Intent(this, TrackerServiceSitter.class);
-            startService(intent);
-            bindService(intent, mConnection, 0);
-            serviceBound = true;
-            System.out.println("TRACKER SERVICE BOUND");
-
-        }
-    }
-    public void loginWithNewCredentials(final String username, final String password) {
-        if (initialLogin && initialLogin2) {
-            Date today = new Date();
-            String dateBeginEnd = dateFormat.format(today);
-            System.out.println("GET VISITS");
-            getVisits(username, password, dateBeginEnd, dateBeginEnd, "1");
-        } else if (!initialLogin && initialLogin2) {
-            System.out.println("GET 2 VISITS");
-            getVisits(username, password, daysBefore(), daysLater(), "1");
-        }
-    }
-    private void getVisits(final String username, final String password, final String dateForVisits, final String endDate, final String firstLogin) {
-        HttpUrl.Builder urlBuilderGetVisits = HttpUrl.parse("https://leashtime.com/native-prov-multiday-list.php")
-                .newBuilder();
-        urlBuilderGetVisits.addQueryParameter("loginid", username);
-        urlBuilderGetVisits.addQueryParameter("password", password);
-        urlBuilderGetVisits.addQueryParameter("start", dateForVisits);
-        urlBuilderGetVisits.addQueryParameter("end", endDate);
-        urlBuilderGetVisits.addQueryParameter("firstLogin", firstLogin);
-        urlBuilderGetVisits.addQueryParameter("clientdocs", "complete");
-
-        String url = urlBuilderGetVisits.build().toString();
-
-        if (sVisitsAndTracking.USER_AGENT == null) {
-            sVisitsAndTracking.USER_AGENT = "LeashTime Android / null user agent";
-        }
-
-        Request request = new Request.Builder()
-                .url(url)
-                .header("User-Agent", sVisitsAndTracking.USER_AGENT)
-                .build();
-
-        System.out.println("BUILT OKHTTP REQUEST");
-        if (initialLogin || initialLogin2 || pollingUpdate) {
-
-            if (recyclerView != null) {
-                System.out.println("RECYCLER VIEW IS TEMP FROZEN AND REMOVED ALL VIEWS");
-                recyclerView.setLayoutFrozen(TRUE);
-                recyclerView.removeAllViewsInLayout();
-            }
-
-            client.newCall(request).enqueue(new Callback() {
-                ResponseBody getVisitResponseBody;
-
-                @Override
-                public void onFailure(Call call, IOException e) {
-                    String message = "LOGIN FAILED";
-                    e.printStackTrace();
-                    if (pollingUpdate) {
-                        pollingUpdate = false;
-                    } else if (initialLogin && initialLogin2) {
-                        launchLogin("noConnection");
-                    } else if (!initialLogin && initialLogin2) {
-                        Toast.makeText(MainApplication.getAppContext(), "CONNECTION PROBLEM", Toast.LENGTH_SHORT).show();
-                    }
-                }
-
-                @Override
-                public void onResponse(Call call, Response response) throws IOException {
-                    getVisitResponseBody = response.body();
-                    String responseData = response.body().string();
-                    String loginCodeString = checkLoginCode(responseData);
-
-                    if (!response.isSuccessful()) {
-                        sVisitsAndTracking.lastLoginResponseCode = "NETWORK UNAVAILABLE";
-                        Toast.makeText(MainApplication.getAppContext(), "CONNECTION PROBLEM", Toast.LENGTH_SHORT).show();
-                        launchLogin("noConnection");
-                        throw new IOException("Unexpected code " + response);
-                    } else {
-                        if (loginCodeString.equals("OK")) {
-                            if (initialLogin && initialLogin2) {
-                                sVisitsAndTracking.onWhichVisitID = "0000";
-                                System.out.println("Parsing data response");
-                                sVisitsAndTracking.parseResponseVisitData(responseData);
-                                System.out.println("Finish parsing data response");
-
-                                sVisitsAndTracking.prefSetUserName(username);
-                                sVisitsAndTracking.prefSetPass(password);
-                                initialLogin = false;
-
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        populateAdapter();
-                                    }
-                                });
-                                Runnable secondRequestRunnable = new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        loginWithNewCredentials(username, password);
-                                    }
-                                };
-                                new Thread(secondRequestRunnable).start();
-
-
-                                getVisitResponseBody.close();
-                            } else if (!initialLogin && initialLogin2) {
-                                initialLogin2 = false;
-                                sVisitsAndTracking.parseSecondVisitRequest(responseData);
-                                getVisitResponseBody.close();
-                            } else if (!initialLogin && !initialLogin2 && pollingUpdate) {
-                                sVisitsAndTracking.parsePollingUpdate(responseData);
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        populateAdapter();
-                                        //Intent intent = new Intent(MainActivity.this, TrackerServiceSitter.class);
-                                        //startService(intent);
-                                        //bindService(intent, mConnection, 0);
-                                        //serviceBound = true;
-                                    }
-                                });
-                                getVisitResponseBody.close();
-
-                            }
-                        } else {
-                            launchLogin("noConnection");
-                        }
-                    }
-                }
-            });
-        }
-    }
-    private void launchLogin(String networkStatus) {
-
-        Bundle basket = new Bundle();
-        basket.putString("firstLogin", "yes");
-        basket.putString("networkStatus", networkStatus);
-        Intent loginIntent = new Intent(this.getApplicationContext(), LoginActivity.class);
-        loginIntent.putExtras(basket);
-        startActivity(loginIntent);
-    }
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    protected void      onActivityResult(int requestCode, int resultCode, Intent data) {
         int pollingUpdateID = 11111;
         resendBadRequest();
         if (requestCode == JOB_UPDATE_ID) {
@@ -469,252 +314,21 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         }
     }
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onLoginEvent(LoginEvent event) {
+    public void             onLoginEvent(LoginEvent event) {
         loginWithNewCredentials(event.username, event.password);
         visitPollingUpdates();
     }
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onStatusChangeEvent(StatusChangeEvent status) {
+    @Subscribe(threadMode = ThreadMode.BACKGROUND)
+    public void             onStatusChangeEvent(StatusChangeEvent status) {
         Toast.makeText(this, "ACQUIRED NEW COORDINATE", Toast.LENGTH_LONG).show();
     }
-    public void visitPollingUpdates() {
-
-        PendingIntent visitUpdatePending = createPendingResult(JOB_UPDATE_ID, new Intent(), 0);
-        visitUpdate = (AlarmManager) getSystemService(ALARM_SERVICE);
-
-        if (Build.VERSION.SDK_INT >= 23) {
-            visitUpdate.setInexactRepeating(
-                    AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                    SystemClock.elapsedRealtime() + POLLING_INTERVAL,
-                    POLLING_INTERVAL,
-                    visitUpdatePending);
-        } else {
-            visitUpdate.setRepeating(
-                    AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                    SystemClock.elapsedRealtime() + delay,
-                    delay,
-                    visitUpdatePending);
-        }
-    }
-    private void resendBadRequest() {
-        if (isNetworkAvailable()) {
-            for (final VisitDetail visitDetail : sVisitsAndTracking.visitData) {
-                if (visitDetail.currentArriveStatus.equals("FAIL")) {
-                    Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST RESEND ARRIVE: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
-                    reSendArriveRequest(visitDetail);
-                }
-                if (visitDetail.currentCompleteStatus.equals("FAIL")) {
-                    Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST RESEND COMPLETE: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
-                    reSendCompleteRequest(visitDetail);
-                }
-                if (visitDetail.visitReportUploadStatus.equals("FAIL")) {
-                    Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST VISIT REPORT: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
-                    client.newCall(visitDetail.visitReportRequest).enqueue(new Callback() {
-                        @Override
-                        public void onFailure(Call call, IOException e) {
-                        }
-
-                        @Override
-                        public void onResponse(Call call, Response response) {
-                            visitDetail.visitReportUploadStatus = "SUCCESS";
-                            visitDetail.visitReportRequest = null;
-                        }
-                    });
-                }
-                if (visitDetail.imageUploadStatus.equals("FAIL")) {
-                    Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST RESEND PHOTO IMAGE: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
-                    SendPhotoServer photoUpload = new SendPhotoServer(sVisitsAndTracking.mPreferences.getString("password",""), sVisitsAndTracking.mPreferences.getString("password",""), visitDetail, "petPhoto");
-                }
-                if (visitDetail.mapSnapUploadStatus.equals("FAIL")) {
-                    Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST RESEND MAP SNAPSHOT: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
-                    SendPhotoServer photoUpload = new SendPhotoServer(sVisitsAndTracking.mPreferences.getString("password",""), sVisitsAndTracking.mPreferences.getString("password",""), visitDetail, "map");
-                }
-            }
-
-            if (!sVisitsAndTracking.resendCoordUploadRequest.isEmpty()) {
-                Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST COORDINATE UPLOAD", Toast.LENGTH_SHORT).show();
-                for (final Request request : sVisitsAndTracking.resendCoordUploadRequest) {
-                    client.newCall(request).enqueue(new Callback() {
-                        @Override
-                        public void onFailure(Call call, IOException e) {
-                        }
-
-                        @Override
-                        public void onResponse(Call call, Response response) {
-                            sVisitsAndTracking.resendCoordUploadRequest.remove(request);
-                        }
-                    });
-                }
-            }
-        }
-    }
-    public void reSendArriveRequest(final VisitDetail visitResend) {
-
-        HttpUrl.Builder urlBuilder = HttpUrl.parse("https://www.leashtime.com/native-visit-action.php")
-                .newBuilder();
-        urlBuilder.addQueryParameter("loginid", sVisitsAndTracking.mPreferences.getString("username",""));
-        urlBuilder.addQueryParameter("password", sVisitsAndTracking.mPreferences.getString("password",""));
-        urlBuilder.addQueryParameter("datetime", visitResend.arrived);
-        urlBuilder.addQueryParameter("coords", "{\"appointmentptr\" : \"" +
-                visitResend.appointmentid +
-                "\", \"lat\" : \"" + visitResend.coordinateLatitudeMarkArrive + "\", " +
-                "\"lon\" : \"" + visitResend.coordinateLongitudeMarkArrive + "\"," +
-                " \"event\" : \"arrived\", " +
-                "\"accuracy\" : \"5.0\"}");
-
-        String url = urlBuilder.toString();
-
-        if (sVisitsAndTracking.USER_AGENT == null) {
-            sVisitsAndTracking.USER_AGENT = "LeashTime Android / null user agent";
-        }
-
-        Request request = new Request.Builder()
-                .url(url)
-                .header("User-Agent", sVisitsAndTracking.USER_AGENT)
-                .build();
-
-
-        client.newCall(request).enqueue(new Callback() {
-
-            Response theResponse;
-
-            @Override
-            public void onFailure(Call call, IOException e) {
-
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) {
-                visitResend.currentArriveStatus = "SUCCESS";
-                sVisitsAndTracking.writeVisitDataToFile(visitResend);
-                theResponse = response;
-                theResponse.close();
-
-            }
-        });
-
-    }
-    public void reSendCompleteRequest(final VisitDetail visitDetail) {
-
-        HttpUrl.Builder urlBuilder = HttpUrl.parse("https://www.leashtime.com/native-visit-action.php")
-                .newBuilder();
-        urlBuilder.addQueryParameter("loginid", sVisitsAndTracking.USERNAME);
-        urlBuilder.addQueryParameter("password", sVisitsAndTracking.PASSWORD);
-        urlBuilder.addQueryParameter("datetime", visitDetail.completed);
-        urlBuilder.addQueryParameter("coords",
-                "{\"appointmentptr\" : \"" + visitDetail.appointmentid +
-                        "\", \"lat\" : \"" + visitDetail.coordinateLatitudeMarkComplete +
-                        "\", \"lon\" : \"" + visitDetail.coordinateLongitudeMarkComplete +
-                        "\", \"event\" : \"completed\", " +
-                        "\"accuracy\" : \"5.0\"}");
-
-        String url = urlBuilder.toString();
-
-        if (sVisitsAndTracking.USER_AGENT == null) {
-            sVisitsAndTracking.USER_AGENT = "LeashTime Android / null user agent";
-        }
-
-        Request request = new Request.Builder()
-                .url(url)
-                .header("User-Agent", sVisitsAndTracking.USER_AGENT)
-                .build();
-
-        client.newCall(request).enqueue(new Callback() {
-            Response theResponse;
-
-            @Override
-            public void onFailure(Call call, IOException e) {
-
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) {
-                visitDetail.currentCompleteStatus = "SUCCESS";
-                sVisitsAndTracking.writeVisitDataToFile(visitDetail);
-                theResponse = response;
-                theResponse.close();
-            }
-        });
-    }
-    public void addToolbar() {
-
-        android.support.v7.widget.Toolbar toolbar = (android.support.v7.widget.Toolbar)findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        dateText = toolbar.findViewById(R.id.dayWeek);
-        monthText = toolbar.findViewById(R.id.onDate);
-        networkStatusView = toolbar.findViewById(R.id.networkStatus);
-        setToolbarDate();
-
-    }
-    public void   setToolbarDate(){
-        Calendar calendar = new GregorianCalendar();
-        String dayWeek = "";
-        int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
-
-        if(dayOfWeek == 1) {
-            dayWeek = "SUN";
-        } else if (dayOfWeek == 2){
-            dayWeek = "MON";
-        } else if (dayOfWeek == 3){
-            dayWeek = "TUE";
-        } else if (dayOfWeek == 4){
-            dayWeek = "WED";
-        } else if (dayOfWeek == 5){
-            dayWeek = "THU";
-        } else if (dayOfWeek == 6){
-            dayWeek = "FRI";
-        } else if (dayOfWeek == 7){
-            dayWeek = "SAT";
-        }
-
-        final String dayWeekInt = dayWeek;
-
-        int dateMonth = calendar.get(Calendar.DAY_OF_MONTH);
-        int month = calendar.get(Calendar.MONTH);
-
-        String dateNum = Integer.toString(dateMonth);
-
-        String monthString = "";
-        if(month == 0) {
-            monthString = "JAN";
-        } else if (month == 1) {
-            monthString = "FEB";
-        } else if (month == 2) {
-            monthString = "MAR";
-        } else if (month == 3) {
-            monthString = "APR";
-        } else if (month == 4) {
-            monthString = "MAY";
-        } else if (month == 5) {
-            monthString = "JUN";
-        } else if (month == 6) {
-            monthString = "JUL";
-        } else if (month == 7) {
-            monthString = "AUG";
-        } else if (month == 8) {
-            monthString = "SEP";
-        } else if (month == 9) {
-            monthString = "OCT";
-        } else if (month == 10) {
-            monthString = "NOV";
-        } else if (month == 11) {
-            monthString = "DEC";
-        }
-
-        final String monthDateString = monthString + ' ' + dateNum;
-
-        if (monthText != null && dateText != null) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    monthText.setText(monthDateString);
-                    dateText.setText(dayWeekInt);
-                }
-            });
-        }
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void             onReloadVisitEvent(ReloadVisitsEvent event) {
+        visitAdapter = new VisitAdapter(this, sVisitsAndTracking.visitData);
+        visitAdapter.notifyDataSetChanged();
     }
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
+    public boolean          onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.options, menu);
         MenuItem showKey = menu.findItem(R.id.showKey);
         MenuItem showFlags = menu.findItem(R.id.showFlags);
@@ -747,28 +361,43 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         return true;
     }
     @Override
-    public boolean          onOptionsItemSelected(MenuItem item) {
+    public boolean           onOptionsItemSelected(MenuItem item) {
 
         SharedPreferences.Editor editor = sVisitsAndTracking.mPreferences.edit();
         Calendar cal = new GregorianCalendar();
         switch (item.getItemId()) {
             case R.id.prev:
-                cal.setTime(sVisitsAndTracking.showingWhichDate);
-                cal.add(Calendar.DAY_OF_MONTH, -1);
-                Date yesterday = cal.getTime();
-                sVisitsAndTracking.getNextPrevDay(yesterday, nextPrevDateFormat.format(yesterday),"before");
-                dateText.setText(getDayWeek(cal.get(Calendar.DAY_OF_WEEK)));
-                monthText.setText(getMonthDay(cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.MONTH)));
+                if (sVisitsAndTracking.daysAfterVisit != null && sVisitsAndTracking.daysBeforeVisit != null) {
+                    cal.setTime(sVisitsAndTracking.showingWhichDate);
+                    cal.add(Calendar.DAY_OF_MONTH, -1);
+                    Date yesterday = cal.getTime();
+                    sVisitsAndTracking.getNextPrevDay(yesterday, nextPrevDateFormat.format(yesterday),"before");
+                    dateText.setText(getDayWeek(cal.get(Calendar.DAY_OF_WEEK)));
+                    monthText.setText(getMonthDay(cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.MONTH)));
+                    populateAdapter();
+                } else {
+                    Toast.makeText(getApplicationContext(), "UPDATING VISITS, PLEASE WAIT", Toast.LENGTH_LONG).show();
+
+                }
+
                 return true;
 
             case R.id.next:
-                cal.setTime(sVisitsAndTracking.showingWhichDate);
-                cal.add(Calendar.DAY_OF_MONTH, 1);
-                Date tomorrow = cal.getTime();
-                sVisitsAndTracking.getNextPrevDay(tomorrow, nextPrevDateFormat.format(tomorrow), "after");
+                if (sVisitsAndTracking.daysAfterVisit != null && sVisitsAndTracking.daysBeforeVisit != null) {
+                    cal.setTime(sVisitsAndTracking.showingWhichDate);
+                    cal.add(Calendar.DAY_OF_MONTH, 1);
+                    Date tomorrow = cal.getTime();
+                    sVisitsAndTracking.getNextPrevDay(tomorrow, nextPrevDateFormat.format(tomorrow), "after");
+                    dateText.setText(getDayWeek(cal.get(Calendar.DAY_OF_WEEK)));
+                    monthText.setText(getMonthDay(cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.MONTH)));
+                    populateAdapter();
 
-                dateText.setText(getDayWeek(cal.get(Calendar.DAY_OF_WEEK)));
-                monthText.setText(getMonthDay(cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.MONTH)));
+
+                } else {
+                    Toast.makeText(getApplicationContext(), "UPDATING VISITS, PLEASE WAIT", Toast.LENGTH_LONG).show();
+
+                }
+
                 return true;
 
             case R.id.showPetPic:
@@ -908,7 +537,409 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         return(super.onOptionsItemSelected(item));
 
     }
-    private static String  daysBefore() {
+    public void                 visitPollingUpdates() {
+
+        PendingIntent visitUpdatePending = createPendingResult(JOB_UPDATE_ID, new Intent(), 0);
+        visitUpdate = (AlarmManager) getSystemService(ALARM_SERVICE);
+
+        if (Build.VERSION.SDK_INT >= 23) {
+            visitUpdate.setInexactRepeating(
+                    AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                    SystemClock.elapsedRealtime() + POLLING_INTERVAL,
+                    POLLING_INTERVAL,
+                    visitUpdatePending);
+        } else {
+            visitUpdate.setRepeating(
+                    AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                    SystemClock.elapsedRealtime() + delay,
+                    delay,
+                    visitUpdatePending);
+        }
+    }
+
+    @Override
+    protected void          onResume() {
+        super.onResume();
+    }
+    @Override
+    protected void          onPause() {
+        super.onPause();
+    }
+    @Override
+    protected void          onStop() {
+        if (!initialLogin && !initialLogin2) {
+            if (serviceBound) {
+                trackerServiceSitter.foreground();
+                unbindService(mConnection);
+                serviceBound = false;
+            } else {
+                stopService(new Intent(this, TrackerServiceSitter.class));
+            }
+            //unbindService(mConnection);
+            //serviceBound = false;
+        }
+        super.onStop();
+    }
+    @Override
+    protected void          onDestroy() {
+        cleanVisitData();
+        EventBus.getDefault().unregister(this);
+        super.onDestroy();
+    }
+
+    private void               getVisits(final String username, final String password, final String dateForVisits, final String endDate, final String firstLogin) {
+        HttpUrl.Builder urlBuilderGetVisits = HttpUrl.parse("https://leashtime.com/native-prov-multiday-list.php")
+                .newBuilder();
+        urlBuilderGetVisits.addQueryParameter("loginid", username);
+        urlBuilderGetVisits.addQueryParameter("password", password);
+        urlBuilderGetVisits.addQueryParameter("start", dateForVisits);
+        urlBuilderGetVisits.addQueryParameter("end", endDate);
+        urlBuilderGetVisits.addQueryParameter("firstLogin", firstLogin);
+        urlBuilderGetVisits.addQueryParameter("clientdocs", "complete");
+
+        String url = urlBuilderGetVisits.build().toString();
+        if (sVisitsAndTracking.USER_AGENT == null) {
+            sVisitsAndTracking.USER_AGENT = "LeashTime Android / null user agent";
+        }
+
+        Request request = new Request.Builder()
+                .url(url)
+                .header("User-Agent", sVisitsAndTracking.USER_AGENT)
+                .build();
+
+        System.out.println(request);
+
+        if (initialLogin || initialLogin2 || pollingUpdate) {
+            if (recyclerView != null) {
+                recyclerView.setLayoutFrozen(TRUE);
+                recyclerView.removeAllViewsInLayout();
+            }
+
+            OkHttpClient client2 = client.newBuilder()
+                    .readTimeout(30000, TimeUnit.MILLISECONDS)
+                    .build();
+            client2.newCall(request).enqueue(new Callback() {
+            //client.newCall(request).enqueue(new Callback() {
+
+                ResponseBody getVisitResponseBody;
+
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    String message = "LOGIN FAILED";
+                    e.printStackTrace();
+                    if (pollingUpdate) {
+                        pollingUpdate = false;
+                    } else if (initialLogin && initialLogin2) {
+                        launchLogin("noConnection");
+                    } else if (!initialLogin && initialLogin2) {
+                        Toast.makeText(MainApplication.getAppContext(), "CONNECTION PROBLEM", Toast.LENGTH_SHORT).show();
+                    }
+                }
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    getVisitResponseBody = response.body();
+                    String responseData = response.body().string();
+                    String loginCodeString = checkLoginCode(responseData);
+
+                    if (!response.isSuccessful()) {
+                        sVisitsAndTracking.lastLoginResponseCode = "NETWORK UNAVAILABLE";
+                        Toast.makeText(MainApplication.getAppContext(), "CONNECTION PROBLEM", Toast.LENGTH_SHORT).show();
+                        launchLogin("noConnection");
+                        throw new IOException("Unexpected code " + response);
+                    } else {
+                        if (loginCodeString.equals("OK")) {
+                            if (initialLogin && initialLogin2) {
+                                sVisitsAndTracking.onWhichVisitID = "0000";
+                                sVisitsAndTracking.parseResponseVisitData(responseData);
+                                sVisitsAndTracking.prefSetUserName(username);
+                                sVisitsAndTracking.prefSetPass(password);
+                                initialLogin = false;
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        populateAdapter();
+                                    }
+                                });
+                                getVisitResponseBody.close();
+
+                                new Thread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        loginWithNewCredentials(username, password);
+                                    }
+                                }).start();
+
+                            } else if (!initialLogin && initialLogin2) {
+
+                                initialLogin2 = false;
+                                sVisitsAndTracking.parseSecondVisitRequest(responseData);
+                                getVisitResponseBody.close();
+
+                            } else if (!initialLogin && !initialLogin2 && pollingUpdate) {
+
+                                sVisitsAndTracking.parsePollingUpdate(responseData);
+                                getVisitResponseBody.close();
+
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        populateAdapter();
+                                    }
+                                });
+                            }
+                        } else {
+                            launchLogin("noConnection");
+                        }
+                    }
+                }
+            });
+        }
+    }
+    private void               launchLogin(String networkStatus) {
+
+        Bundle basket = new Bundle();
+        basket.putString("firstLogin", "yes");
+        basket.putString("networkStatus", networkStatus);
+        Intent loginIntent = new Intent(this.getApplicationContext(), LoginActivity.class);
+        loginIntent.putExtras(basket);
+        startActivity(loginIntent);
+    }
+    public void                 connectServiceFirstTime() {
+        if (canAccessLocation()) {
+            Intent intent = new Intent(this, TrackerServiceSitter.class);
+            startService(intent);
+            bindService(intent, mConnection, 0);
+            serviceBound = true;
+        }
+    }
+    public void                 loginWithNewCredentials(final String username, final String password) {
+        if (initialLogin && initialLogin2) {
+            Date today = new Date();
+            String dateBeginEnd = dateFormat.format(today);
+            getVisits(username, password, dateBeginEnd, dateBeginEnd, "1");
+        } else if (!initialLogin && initialLogin2) {
+            getVisits(username, password, daysBefore(), daysLater(), "1");
+        }
+    }
+    private void                resendBadRequest() {
+        if (isNetworkAvailable()) {
+            for (final VisitDetail visitDetail : sVisitsAndTracking.visitData) {
+                if (visitDetail.currentArriveStatus.equals("FAIL")) {
+                    Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST RESEND ARRIVE: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
+                    reSendArriveRequest(visitDetail);
+                }
+                if (visitDetail.currentCompleteStatus.equals("FAIL")) {
+                    Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST RESEND COMPLETE: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
+                    reSendCompleteRequest(visitDetail);
+                }
+                if (visitDetail.visitReportUploadStatus.equals("FAIL")) {
+                    Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST VISIT REPORT: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
+                    client.newCall(visitDetail.visitReportRequest).enqueue(new Callback() {
+                        @Override
+                        public void onFailure(Call call, IOException e) {
+                        }
+
+                        @Override
+                        public void onResponse(Call call, Response response) {
+                            visitDetail.visitReportUploadStatus = "SUCCESS";
+                            visitDetail.visitReportRequest = null;
+                        }
+                    });
+                }
+                if (visitDetail.imageUploadStatus.equals("FAIL")) {
+                    Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST RESEND PHOTO IMAGE: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
+                    SendPhotoServer photoUpload = new SendPhotoServer(sVisitsAndTracking.mPreferences.getString("password",""), sVisitsAndTracking.mPreferences.getString("password",""), visitDetail, "petPhoto");
+                }
+                if (visitDetail.mapSnapUploadStatus.equals("FAIL")) {
+                    Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST RESEND MAP SNAPSHOT: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
+                    SendPhotoServer photoUpload = new SendPhotoServer(sVisitsAndTracking.mPreferences.getString("password",""), sVisitsAndTracking.mPreferences.getString("password",""), visitDetail, "map");
+                }
+            }
+
+            if (!sVisitsAndTracking.resendCoordUploadRequest.isEmpty()) {
+                Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST COORDINATE UPLOAD", Toast.LENGTH_SHORT).show();
+                for (final Request request : sVisitsAndTracking.resendCoordUploadRequest) {
+                    client.newCall(request).enqueue(new Callback() {
+                        @Override
+                        public void onFailure(Call call, IOException e) {
+                        }
+
+                        @Override
+                        public void onResponse(Call call, Response response) {
+                            sVisitsAndTracking.resendCoordUploadRequest.remove(request);
+                        }
+                    });
+                }
+            }
+        }
+    }
+    public void                 reSendArriveRequest(final VisitDetail visitResend) {
+
+        HttpUrl.Builder urlBuilder = HttpUrl.parse("https://www.leashtime.com/native-visit-action.php")
+                .newBuilder();
+        urlBuilder.addQueryParameter("loginid", sVisitsAndTracking.mPreferences.getString("username",""));
+        urlBuilder.addQueryParameter("password", sVisitsAndTracking.mPreferences.getString("password",""));
+        urlBuilder.addQueryParameter("datetime", visitResend.arrived);
+        urlBuilder.addQueryParameter("coords", "{\"appointmentptr\" : \"" +
+                visitResend.appointmentid +
+                "\", \"lat\" : \"" + visitResend.coordinateLatitudeMarkArrive + "\", " +
+                "\"lon\" : \"" + visitResend.coordinateLongitudeMarkArrive + "\"," +
+                " \"event\" : \"arrived\", " +
+                "\"accuracy\" : \"5.0\"}");
+
+        String url = urlBuilder.toString();
+
+        if (sVisitsAndTracking.USER_AGENT == null) {
+            sVisitsAndTracking.USER_AGENT = "LeashTime Android / null user agent";
+        }
+
+        Request request = new Request.Builder()
+                .url(url)
+                .header("User-Agent", sVisitsAndTracking.USER_AGENT)
+                .build();
+
+
+        client.newCall(request).enqueue(new Callback() {
+
+            Response theResponse;
+
+            @Override
+            public void onFailure(Call call, IOException e) {
+
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) {
+                visitResend.currentArriveStatus = "SUCCESS";
+                sVisitsAndTracking.writeVisitDataToFile(visitResend);
+                theResponse = response;
+                theResponse.close();
+
+            }
+        });
+
+    }
+    public void                 reSendCompleteRequest(final VisitDetail visitDetail) {
+
+        HttpUrl.Builder urlBuilder = HttpUrl.parse("https://www.leashtime.com/native-visit-action.php")
+                .newBuilder();
+        urlBuilder.addQueryParameter("loginid", sVisitsAndTracking.USERNAME);
+        urlBuilder.addQueryParameter("password", sVisitsAndTracking.PASSWORD);
+        urlBuilder.addQueryParameter("datetime", visitDetail.completed);
+        urlBuilder.addQueryParameter("coords",
+                "{\"appointmentptr\" : \"" + visitDetail.appointmentid +
+                        "\", \"lat\" : \"" + visitDetail.coordinateLatitudeMarkComplete +
+                        "\", \"lon\" : \"" + visitDetail.coordinateLongitudeMarkComplete +
+                        "\", \"event\" : \"completed\", " +
+                        "\"accuracy\" : \"5.0\"}");
+
+        String url = urlBuilder.toString();
+
+        if (sVisitsAndTracking.USER_AGENT == null) {
+            sVisitsAndTracking.USER_AGENT = "LeashTime Android / null user agent";
+        }
+
+        Request request = new Request.Builder()
+                .url(url)
+                .header("User-Agent", sVisitsAndTracking.USER_AGENT)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            Response theResponse;
+
+            @Override
+            public void onFailure(Call call, IOException e) {
+
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) {
+                visitDetail.currentCompleteStatus = "SUCCESS";
+                sVisitsAndTracking.writeVisitDataToFile(visitDetail);
+                theResponse = response;
+                theResponse.close();
+            }
+        });
+    }
+    public void                 addToolbar() {
+
+        android.support.v7.widget.Toolbar toolbar = (android.support.v7.widget.Toolbar)findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        dateText = toolbar.findViewById(R.id.dayWeek);
+        monthText = toolbar.findViewById(R.id.onDate);
+        networkStatusView = toolbar.findViewById(R.id.networkStatus);
+        setToolbarDate();
+
+    }
+    public void                 setToolbarDate(){
+        Calendar calendar = new GregorianCalendar();
+        String dayWeek = "";
+        int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
+
+        if(dayOfWeek == 1) {
+            dayWeek = "SUN";
+        } else if (dayOfWeek == 2){
+            dayWeek = "MON";
+        } else if (dayOfWeek == 3){
+            dayWeek = "TUE";
+        } else if (dayOfWeek == 4){
+            dayWeek = "WED";
+        } else if (dayOfWeek == 5){
+            dayWeek = "THU";
+        } else if (dayOfWeek == 6){
+            dayWeek = "FRI";
+        } else if (dayOfWeek == 7){
+            dayWeek = "SAT";
+        }
+
+        final String dayWeekInt = dayWeek;
+
+        int dateMonth = calendar.get(Calendar.DAY_OF_MONTH);
+        int month = calendar.get(Calendar.MONTH);
+
+        String dateNum = Integer.toString(dateMonth);
+
+        String monthString = "";
+        if(month == 0) {
+            monthString = "JAN";
+        } else if (month == 1) {
+            monthString = "FEB";
+        } else if (month == 2) {
+            monthString = "MAR";
+        } else if (month == 3) {
+            monthString = "APR";
+        } else if (month == 4) {
+            monthString = "MAY";
+        } else if (month == 5) {
+            monthString = "JUN";
+        } else if (month == 6) {
+            monthString = "JUL";
+        } else if (month == 7) {
+            monthString = "AUG";
+        } else if (month == 8) {
+            monthString = "SEP";
+        } else if (month == 9) {
+            monthString = "OCT";
+        } else if (month == 10) {
+            monthString = "NOV";
+        } else if (month == 11) {
+            monthString = "DEC";
+        }
+
+        final String monthDateString = monthString + ' ' + dateNum;
+
+        if (monthText != null && dateText != null) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    monthText.setText(monthDateString);
+                    dateText.setText(dayWeekInt);
+                }
+            });
+        }
+    }
+    private static String   daysBefore() {
         Date today = new Date();
         Calendar cal = new GregorianCalendar();
         cal.setTime(today);
@@ -916,7 +947,7 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         Date today30 = cal.getTime();
         return dateFormat.format(today30);
     }
-    private static String daysLater() {
+    private static String   daysLater() {
 
         Calendar calendar = Calendar.getInstance();
         calendar.add(Calendar.DAY_OF_YEAR, 21);
@@ -924,7 +955,7 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         return dateFormat.format(threeWeeksLater);
 
     }
-    private String      checkLoginCode(String lastLoginResponseCode) {
+    private String             checkLoginCode(String lastLoginResponseCode) {
         switch (lastLoginResponseCode) {
             case "S":
                 sVisitsAndTracking.lastLoginResponseCode = "SITTER MOBILE APP NOT ENABLED FOR BUSINESS";
@@ -970,7 +1001,7 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                 return "OK";
         }
     }
-    public void          cleanVisitData()  {
+    public void                 cleanVisitData()  {
         TrackerServiceSitter tracker = new TrackerServiceSitter(MainApplication.getAppContext());
         Intent intent = new Intent(MainApplication.getAppContext(), TrackerServiceSitter.class);
         stopService(intent);
@@ -1002,7 +1033,7 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
             tempVisitIterator.remove();
         }
     }
-    private boolean  canAccessLocation () {
+    private boolean         canAccessLocation () {
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
             if (ContextCompat.checkSelfPermission(this, ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                 return true;
@@ -1016,8 +1047,7 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         }
         return true;
     }
-    public  boolean isNetworkAvailable () {
-        System.out.println("Is network available called");
+    public  boolean          isNetworkAvailable () {
         boolean success = false;
         Boolean checkNetworkStatus = checkNetworkConnection();
         if (checkNetworkStatus && !initialLogin && !initialLogin2) {
@@ -1027,16 +1057,13 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setConnectTimeout(10000);
                 connection.connect();
-                System.out.println("Trying to connect to Google.com and response code is: " +connection.getResponseCode());
                 success = connection.getResponseCode() == 200;
                 if (networkStatusView != null) {
                     networkStatusView.setText("OK");
                     networkStatusView.setTextColor(Color.WHITE);
                     connection.disconnect();
                 }
-                System.out.println("Internet is available");
             } catch (IOException e) {
-                System.out.println("Error checking internet connection" + e);
                 if (networkStatusView != null) {
                     networkStatusView.setText("CANNOT CONNECT");
                     networkStatusView.setTextColor(Color.RED);
@@ -1056,7 +1083,7 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         }
         return success;
     }
-    public boolean   checkNetworkConnection() {
+    public boolean           checkNetworkConnection() {
             ConnectivityManager cm = (ConnectivityManager) this.getSystemService (Context.CONNECTIVITY_SERVICE);
             NetworkInfo ni = cm.getActiveNetworkInfo();
 
@@ -1099,8 +1126,7 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
             }
         return FALSE;
     }
-
-    private String                      getMonthDay(int dateMonth, int month) {
+    private String             getMonthDay(int dateMonth, int month) {
         String dateNum = Integer.toString(dateMonth);
         String monthString = "";
         if(month == 0) {
@@ -1133,7 +1159,7 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
 
         return monthString;
     }
-    private String                      getDayWeek(int dayOfWeek){
+    private String             getDayWeek(int dayOfWeek){
         String dayWeek = "";
         if(dayOfWeek == 1) {
             dayWeek = "SUN";
@@ -1152,7 +1178,7 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         }
         return dayWeek;
     }
-    public Date getToday() {
+    public Date                 getToday() {
         Calendar c2 = Calendar.getInstance();
         c2.add(Calendar.HOUR, 1);
         c2.set(Calendar.MINUTE, 0);

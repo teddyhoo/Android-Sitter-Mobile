@@ -114,7 +114,6 @@ public class VisitDetail implements Serializable {
         }
     }
     public void printCoordinates() {
-
         System.out.println(gpsCoordsForVisit);
     }
     private static HashMap<String,String> convertLocationToDictionary(Location location) {

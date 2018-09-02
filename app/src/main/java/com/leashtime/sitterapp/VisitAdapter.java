@@ -137,9 +137,10 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
     public class ViewHolder extends RecyclerView.ViewHolder {
         public ConstraintLayout row;
         private final ArrayList<CafeBar> snackBarItems = new ArrayList<>();
-        public CafeBar mgrNoteCafeBar;
         private ClientDetail currentClient;
         VisitsAndTracking sVisitsAndTracking;
+
+        public CafeBar mgrNoteCafeBar;
         public SwipeRevealLayout swipeLayout;
 
         private View frontLayout;
@@ -177,7 +178,6 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
                     VisitDetail swipeTag = (VisitDetail)view.getTag();
                     configureRowView(swipeTag);
                     bind(swipeTag.appointmentid);
-                    //notifyDataSetChanged();
                 }
                 @Override
                 public void onOpened(SwipeRevealLayout view) {
@@ -364,6 +364,11 @@ public class VisitAdapter extends RecyclerView. Adapter<VisitAdapter.ViewHolder>
             } else if (visit.status.equals("canceled")) {
                 currentRow.setBackgroundColor(ContextCompat.getColor(mContext, R.color.red_900));
                 frontLayout.setBackgroundColor(ContextCompat.getColor(mContext, R.color.red_900));
+                arriveImage.setVisibility(View.INVISIBLE);
+                keyIconButton.setVisibility(View.INVISIBLE);
+                visitNoteManagerButton.setVisibility(View.INVISIBLE);
+                writeVisitReportButton.setVisibility(View.INVISIBLE);
+                keyIDField.setVisibility(View.INVISIBLE);
                 if (timerCounter != null) {
                     timerCounter.setVisibility(View.INVISIBLE);
                 }

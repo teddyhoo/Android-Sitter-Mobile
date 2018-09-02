@@ -102,9 +102,6 @@ public class VolleyMultipartRequest extends Request<NetworkResponse> {
         dataOutputStream.writeBytes(parameterValue);
         dataOutputStream.writeBytes(lineEnd);
 
-        //dataOutputStream.writeBytes("Content-Type: text/plain; charset=UTF-8" + lineEnd);
-        // System.out.println("Content-Type: text/plain; charset=UTF-8" + lineEnd);
-
     }
     private void buildDataPart(DataOutputStream dataOutputStream, VolleyMultipartRequest.DataPart dataFile, String inputName) throws IOException {
         dataOutputStream.writeBytes(twoHyphens + boundary + lineEnd);

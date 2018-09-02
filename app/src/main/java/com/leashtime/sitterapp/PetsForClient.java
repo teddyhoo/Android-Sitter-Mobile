@@ -37,7 +37,6 @@ public class PetsForClient {
         }
 
     }
-
     public void InitPetsForClient(Map<String,String> petInfo) {
         this.petid = petInfo.get("petid");
         this.name = petInfo.get("name");
@@ -56,10 +55,7 @@ public class PetsForClient {
         }
 
     }
-
     public void addPetBasicField(String key, String val) {}
-
-
     public void addPetDocuments(Map<String,Map<String,String>> petDocs) {
 
         HashMap<String,String> customPetDic = new HashMap<>();

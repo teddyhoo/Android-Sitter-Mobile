@@ -441,7 +441,7 @@ public class VisitsAndTracking {
         }
         return validInvalid;
     }
-    public void         parseResponseVisitData(String response) {
+    public void                     parseResponseVisitData(String response) {
         try {
             JSONObject jsonData = new JSONObject(response);
             JSONArray visitItems = jsonData.getJSONArray("visits");
@@ -471,7 +471,7 @@ public class VisitsAndTracking {
             e.printStackTrace();
         }
     }
-    public void         parseSecondVisitRequest(String response){
+    public void                     parseSecondVisitRequest(String response){
 
         clearPrevNextData();
         try {
@@ -499,11 +499,11 @@ public class VisitsAndTracking {
             jsonEx.printStackTrace();
         }
     }
-    public void         parsePollingUpdate(String response) {
+    public void                     parsePollingUpdate(String response) {
         clearVisitData();
         parseResponseVisitData(response);
     }
-    private void        addVisitList(Map<String,String> visitItemDetail) {
+    private void                    addVisitList(Map<String,String> visitItemDetail) {
         VisitDetail visit = new VisitDetail();
         visit.appointmentid = visitItemDetail.get("appointmentid");
         visit.clientptr = visitItemDetail.get("clientptr");
@@ -550,7 +550,7 @@ public class VisitsAndTracking {
         addVisitProfile(visit);
 
     }
-    private void        addVisitProfile(VisitDetail visit) {
+    private void                    addVisitProfile(VisitDetail visit) {
 
         if(todayDateFormat.equals(visit.shortNaturalDate)) {
             visitData.add(visit);
@@ -575,7 +575,7 @@ public class VisitsAndTracking {
             }
         }
     }
-    private void        addFlagItem(Map<String, String> flagItemDetail) {
+    private void                    addFlagItem(Map<String, String> flagItemDetail) {
 
         FlagItem flag = new FlagItem();
         flag.flagID = flagItemDetail.get("flagid");
@@ -584,7 +584,7 @@ public class VisitsAndTracking {
         mFlagData.add(flag);
 
     }
-    private static String validateVisitDetail(Object visitInfo) {
+    private static String       validateVisitDetail(Object visitInfo) {
 
         String validInvalid;
 
@@ -603,7 +603,7 @@ public class VisitsAndTracking {
         }
         return validInvalid;
     }
-    private boolean     isDateEarlier(Date earlierDate) {
+    private boolean              isDateEarlier(Date earlierDate) {
 
         return earlierDate.compareTo(showingWhichDate) < 0;
     }
@@ -631,8 +631,7 @@ public class VisitsAndTracking {
         }
         return list;
     }
-    public void writeVisitDataToFile(VisitDetail visit) {
-
+    public void         writeVisitDataToFile(VisitDetail visit) {
         File file;
         ObjectOutputStream oos = null;
 
@@ -651,7 +650,7 @@ public class VisitsAndTracking {
             }
         }
     }
-    public void syncVisitWithFile(VisitDetail visit) {
+    public void         syncVisitWithFile(VisitDetail visit) {
         File file = new File(mContext.getFilesDir(), visit.appointmentid);
         ObjectInputStream inputStream = null;
 
@@ -758,14 +757,13 @@ public class VisitsAndTracking {
             }
         }
     }
-    public void  getNextPrevDay(Date theDate, String theDay, String nextOrPrev) {
+    public void         getNextPrevDay(Date theDate, String theDay, String nextOrPrev) {
 
         showingWhichDate =  theDate;
         showingDateFormat = formatter.format(theDate);
         removeAllVisitDataElements();
 
         if(theDay.equals(todayDateFormat)) {
-            //removeAllVisitDataElements();
             for(VisitDetail visitDetail : tempVisitData) {
                 syncVisitWithFile(visitDetail);
                 visitData.add(visitDetail);
@@ -784,35 +782,30 @@ public class VisitsAndTracking {
                     visitData.add(visitDetail);
                 }
             }
-
         }
+
         EventBus.getDefault().post(new ReloadVisitsEvent());
     }
-    public void sendMapSnapToServer(VisitDetail visit) {
+    public void         sendMapSnapToServer(VisitDetail visit) {
         SendPhotoServer mapUpload = new SendPhotoServer(USERNAME, PASSWORD, visit, "map");
     }
-    private  String getDate() {
-        Date transmitDate = new Date();
-        SimpleDateFormat rightNowFormatTransmit = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
-        return rightNowFormatTransmit.format(transmitDate);
-    }
-    public String prefUserName () {
+    public String       prefUserName () {
         return mPreferences.getString("username","");
     }
-    public void prefSetUserName (String userName) {
+    public void         prefSetUserName (String userName) {
         SharedPreferences.Editor editor = mPreferences.edit();
         editor.putString("username",userName);
         editor.apply();
         this.USERNAME = userName;
     }
-    public void prefSetPass(String pass) {
+    public void         prefSetPass(String pass) {
         SharedPreferences.Editor editor = mPreferences.edit();
         editor.putString("password",pass);
         editor.apply();
         this.PASSWORD = pass;
 
     }
-    public void setupPrefs() {
+    public void         setupPrefs() {
         SharedPreferences.Editor editor = mPreferences.edit();
 
         if(mPreferences.getString("showClientName", "").isEmpty()) {
@@ -938,7 +931,7 @@ public class VisitsAndTracking {
         //System.out.println("Visit Data count: " + visitData.size() + ", Days After Visit Count: " + daysAfterVisit.size() + ", Days before visit count: " + daysBeforeVisit.size() + ", Temp: " + tempVisitData.size());
        // System.out.println("Flag count: " + mFlagData.size());
     }
-    public void clearPrevNextData () {
+    public void         clearPrevNextData () {
 
         Iterator<VisitDetail> visitDetailListIterator2 = daysAfterVisit.listIterator();
         while(visitDetailListIterator2.hasNext()) {

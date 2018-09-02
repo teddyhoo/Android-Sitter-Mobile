@@ -66,7 +66,6 @@ public class ViewVisitDetail extends AppCompatActivity {
                 }
             }
         }
-        currentVisit.printCoordinates();
         addPetImages(clientDetails);
         addVisitSummary(clientDetails, currentVisit);
         addClientFlags(clientDetails);
@@ -467,7 +466,6 @@ public class ViewVisitDetail extends AppCompatActivity {
             clientViewScrollView.addView(petPhotoLinLay4);
         }
     }
-
     private LinearLayout createLabelContent (String label, String content, int fieldColor, int fontSize) {
         LinearLayout linearLayout = new LinearLayout(this);
         linearLayout.setOrientation(LinearLayout.VERTICAL);
@@ -534,8 +532,6 @@ public class ViewVisitDetail extends AppCompatActivity {
             }
         });
     }
-
-
 }
 
 

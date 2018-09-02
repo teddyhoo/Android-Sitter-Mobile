@@ -114,7 +114,7 @@ public class PhotoActivity extends AppCompatActivity{
         SendPhotoServer photoUpload = new SendPhotoServer(sVisitsAndTracking.mPreferences.getString("username",""), sVisitsAndTracking.mPreferences.getString("password",""), visit, "petPhoto");
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN)
+    @Subscribe(threadMode = ThreadMode.BACKGROUND)
     public void onSavePhotoEvent(SavePhotoEvent event) {
         int pos = 0;
         for(VisitDetail visitItem : sVisitsAndTracking.visitData) {
@@ -289,25 +289,6 @@ public class PhotoActivity extends AppCompatActivity{
         Point size = new Point();
         display.getSize(size);
         int width = size.x;
-        // handleFoto.start();
-        //chooseImage = (ImageButton) findViewById(R.id.photoStack);
-        // backButton = (ImageButton) findViewById(R.id.backButton);
-       /* backButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                finish();
-
-            }
-        });*/
-       /* chooseImage.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent i = new Intent().setType("image/*");
-                i.setAction(Intent.ACTION_GET_CONTENT);
-                System.out.println("Intent for image picker");
-                startActivityForResult(Intent.createChooser(i, "Select File"), SELECT_FILE);
-            }
-        });*/
 
         CameraView cameraView = findViewById(R.id.camera_view);
         cameraView.getLayoutParams().height = width+40;
@@ -446,7 +427,6 @@ public class PhotoActivity extends AppCompatActivity{
 
         ByteArrayOutputStream bos = new ByteArrayOutputStream(image.getByteCount());
         image.compress(Bitmap.CompressFormat.JPEG,100, bos);
-
         try {
             imageFileName.createNewFile();
         } catch (IOException e) {
@@ -455,7 +435,6 @@ public class PhotoActivity extends AppCompatActivity{
 
         }
         FileOutputStream fileOutputStream = null;
-
         try {
             fileOutputStream = new FileOutputStream(imageFileName);
             fileOutputStream.write(bos.toByteArray());
