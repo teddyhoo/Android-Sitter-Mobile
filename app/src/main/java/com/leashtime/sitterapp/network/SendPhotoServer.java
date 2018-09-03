@@ -33,6 +33,8 @@ public class SendPhotoServer {
         String url;
         String username = name;
         String password = pass;
+
+
         Response.Listener responseListen = new SendPhotoServer.NetworkResponseListener();
         Response.ErrorListener errorListen = new SendPhotoServer.MyErrorListener();
 
@@ -74,6 +76,7 @@ public class SendPhotoServer {
         private final String appointmentid;
         private final VisitDetail visitID;
         private final String imageFileSend;
+        private final String imageType;
 
         public MyVolleyMultipartRequest(String url,
                                         Response.Listener responseListen,
@@ -87,10 +90,10 @@ public class SendPhotoServer {
             super(Request.Method.POST, url, responseListen, errorListener);
             this.username = username;
             this.password = password;
-            //this.appointmentid = appointmentid;
             this.appointmentid = visitID.appointmentid;
             this.visitID = visitID;
             this.imageFileSend = imageFileSend;
+            this.imageType = type;
         }
 
         @Override
@@ -115,12 +118,15 @@ public class SendPhotoServer {
         protected byte[] getByteUploadData(String sendFileName) {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             try {
+
                 BitmapFactory.Options options = new BitmapFactory.Options();
                 Bitmap visitImage = BitmapFactory.decodeFile(sendFileName, options);
                 visitImage.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
+                System.out.println("BYTE UPLOAD DATA TRY CATCH, bitmap size: " + visitImage.getByteCount() + ", h: " +visitImage.getHeight() + ", w: " + visitImage.getWidth());
             } catch (Exception  e) {
                 e.printStackTrace();
             } finally {
+                System.out.println("Byte array output stream: " + byteArrayOutputStream.toByteArray().length);
                 return byteArrayOutputStream.toByteArray();
             }
         }

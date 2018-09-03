@@ -68,8 +68,10 @@ public class VolleyMultipartRequest extends Request<NetworkResponse> {
             Map<String, VolleyMultipartRequest.DataPart> data = getByteData();
             if (data != null && !data.isEmpty()) {
                 dataParse(dos, data);
+
             }
             dos.writeBytes(twoHyphens + boundary + twoHyphens + lineEnd);
+            System.out.println("Byte array output stream: " + bos.toByteArray().length);
             return bos.toByteArray();
         } catch (IOException e) {
 

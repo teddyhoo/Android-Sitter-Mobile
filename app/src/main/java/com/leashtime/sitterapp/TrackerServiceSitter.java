@@ -271,7 +271,7 @@ public class TrackerServiceSitter extends Service
         @Override
         public void onLocationChanged(Location location) {
             if(null != location) {
-                System.out.println("LOCATION COORDINATE: " + location.getLatitude() + ", " + location.getLongitude());
+                //System.out.println("LOCATION COORDINATE: " + location.getLatitude() + ", " + location.getLongitude());
                 mLastLocation = location;
                 if (location.getAccuracy() < MIN_ACCURACY) {
                     float distFromLast = 0.0f;
