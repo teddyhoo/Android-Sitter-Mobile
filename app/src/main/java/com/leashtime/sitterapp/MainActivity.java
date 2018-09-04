@@ -216,7 +216,6 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
     @Override
     protected void          onStart() {
         super.onStart();
-        System.out.println("ON START");
         if (MainApplication.wasInBackground) {
             if (isNetworkAvailable() && !initialLogin && !initialLogin2) {
                 Intent intent = new Intent(this, TrackerServiceSitter.class);
@@ -274,7 +273,6 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                 }
             });
 
-            System.out.println("ON START - BIND SERVICE");
 
             new Thread(new Runnable() {
                 @Override
@@ -294,7 +292,7 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         resendBadRequest();
         if (requestCode == JOB_UPDATE_ID) {
             if (!pollingUpdate) {
-                //if (checkNetworkConnection()) {
+
                 if (isNetworkAvailable()) {
                     pollingUpdate = true;
                     Date today = new Date();
@@ -379,7 +377,6 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                     Toast.makeText(getApplicationContext(), "UPDATING VISITS, PLEASE WAIT", Toast.LENGTH_LONG).show();
 
                 }
-
                 return true;
 
             case R.id.next:
@@ -391,13 +388,9 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                     dateText.setText(getDayWeek(cal.get(Calendar.DAY_OF_WEEK)));
                     monthText.setText(getMonthDay(cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.MONTH)));
                     populateAdapter();
-
-
                 } else {
                     Toast.makeText(getApplicationContext(), "UPDATING VISITS, PLEASE WAIT", Toast.LENGTH_LONG).show();
-
                 }
-
                 return true;
 
             case R.id.showPetPic:
@@ -435,13 +428,11 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                     editor.putString("showClientName","NO");
                     item.setChecked(FALSE);
                     visitAdapter.notifyDataSetChanged();
-
                 } else {
                     sVisitsAndTracking.showClientName = true;
                     editor.putString("showClientName","YES");
                     item.setChecked(TRUE);
                     visitAdapter.notifyDataSetChanged();
-
                 }
                 editor.apply();
                 return true;
@@ -533,12 +524,9 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                 launchLogin("connection");
                 return true;
         }
-
         return(super.onOptionsItemSelected(item));
-
     }
     public void                 visitPollingUpdates() {
-
         PendingIntent visitUpdatePending = createPendingResult(JOB_UPDATE_ID, new Intent(), 0);
         visitUpdate = (AlarmManager) getSystemService(ALARM_SERVICE);
 
@@ -556,7 +544,6 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                     visitUpdatePending);
         }
     }
-
     @Override
     protected void          onResume() {
         super.onResume();
@@ -575,8 +562,6 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
             } else {
                 stopService(new Intent(this, TrackerServiceSitter.class));
             }
-            //unbindService(mConnection);
-            //serviceBound = false;
         }
         super.onStop();
     }
@@ -619,8 +604,6 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                     .readTimeout(30000, TimeUnit.MILLISECONDS)
                     .build();
             client2.newCall(request).enqueue(new Callback() {
-            //client.newCall(request).enqueue(new Callback() {
-
                 ResponseBody getVisitResponseBody;
 
                 @Override
@@ -661,32 +644,26 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                                         populateAdapter();
                                     }
                                 });
-                                getVisitResponseBody.close();
-
                                 new Thread(new Runnable() {
                                     @Override
                                     public void run() {
                                         loginWithNewCredentials(username, password);
                                     }
                                 }).start();
-
+                                getVisitResponseBody.close();
                             } else if (!initialLogin && initialLogin2) {
-
                                 initialLogin2 = false;
                                 sVisitsAndTracking.parseSecondVisitRequest(responseData);
                                 getVisitResponseBody.close();
-
                             } else if (!initialLogin && !initialLogin2 && pollingUpdate) {
-
                                 sVisitsAndTracking.parsePollingUpdate(responseData);
-                                getVisitResponseBody.close();
-
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
                                         populateAdapter();
                                     }
                                 });
+                                getVisitResponseBody.close();
                             }
                         } else {
                             launchLogin("noConnection");
@@ -697,7 +674,6 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         }
     }
     private void               launchLogin(String networkStatus) {
-
         Bundle basket = new Bundle();
         basket.putString("firstLogin", "yes");
         basket.putString("networkStatus", networkStatus);
@@ -821,7 +797,6 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
 
     }
     public void                 reSendCompleteRequest(final VisitDetail visitDetail) {
-
         HttpUrl.Builder urlBuilder = HttpUrl.parse("https://www.leashtime.com/native-visit-action.php")
                 .newBuilder();
         urlBuilder.addQueryParameter("loginid", sVisitsAndTracking.USERNAME);

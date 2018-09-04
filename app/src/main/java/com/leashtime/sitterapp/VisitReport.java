@@ -30,6 +30,11 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.androidnetworking.AndroidNetworking;
+import com.androidnetworking.common.Priority;
+import com.androidnetworking.error.ANError;
+import com.androidnetworking.interfaces.StringRequestListener;
+import com.androidnetworking.interfaces.UploadProgressListener;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -44,10 +49,10 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -76,6 +81,7 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
     ImageView petPicture;
     public VisitDetail currentVisit;
     private VisitDetail currentVisitTemp;
+    private TimerTask mapSnapUploadTimerTask;
     final VisitsAndTracking mVisitsAndTracking = VisitsAndTracking.getInstance();
     public static final int MY_PERMISSIONS_REQUEST_FILE = 200;
 
@@ -117,7 +123,7 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
         } else {
             currTime = currTime + " - " + trimTime(currentVisit.completed);
         }
-        currentVisitTemp.mapSnapShotImage = "None";
+        //currentVisitTemp.mapSnapShotImage = "None";
 
         final String finalCurrentTime = currTime;
 
@@ -185,18 +191,50 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
                             fab.post(new Runnable() {
                                 @Override
                                 public void run() {
-                                    mVisitsAndTracking.writeVisitDataToFile(visitDetailFinal);
-                                    System.out.println("taking MAP SNAP");
                                     takeSnapshot();
-                                    //finish();
                                 }
                             });
                         }
                     }).start();
                 } else {
-                    Toast.makeText(MainApplication.getAppContext(), "SENDING VISIT REPORT.", Toast.LENGTH_SHORT).show();
-                    mVisitsAndTracking.sendMapSnapToServer(visitDetailFinal);
-                    //finish();
+                    Toast.makeText(MainApplication.getAppContext(), "SENDING MAP SNAP SERVER - FILE EXISTS.", Toast.LENGTH_SHORT).show();
+                    //mVisitsAndTracking.sendMapSnapToServer(visitDetailFinal);
+                    Timer timer2 = new Timer();
+                    mapSnapUploadTimerTask = new TimerTask() {
+                        @Override
+                        public void run() {
+                            File imageFile = new File(currentVisit.mapSnapShotImage);
+                            AndroidNetworking.upload("https://leashtime.com/appointment-map-upload.php")
+                                    .addMultipartFile("image", imageFile)
+                                    .addMultipartParameter("loginid", mVisitsAndTracking.USERNAME)
+                                    .addMultipartParameter("password", mVisitsAndTracking.PASSWORD)
+                                    .addMultipartParameter("appointmentid", currentVisit.appointmentid)
+                                    .setTag("mapSnapUpload")
+                                    .setPriority(Priority.HIGH)
+                                    .build()
+                                    .setUploadProgressListener(new UploadProgressListener() {
+                                        @Override
+                                        public void onProgress(long bytesUploaded, long totalBytes) {
+                                            System.out.println("Num bytes uploaded: " + bytesUploaded + " of: " + totalBytes);
+                                        }
+                                    })
+                                    .getAsString(new StringRequestListener() {
+                                        @Override
+                                        public void onResponse(String response) {
+                                            System.out.println("String request listener: " + response);
+                                        }
+
+                                        @Override
+                                        public void onError(ANError anError) {
+                                            System.out.println("Error: " + anError.toString());
+                                        }
+                                    });
+                            timer2.cancel();
+                            finish();
+                        }
+                    };
+
+                    timer2.schedule(mapSnapUploadTimerTask, 300, 300);
                 }
             }
         });
@@ -239,8 +277,6 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
         photoImportThread.start();
         setupMapSnapShot();
 
-        System.out.println("VISIT REPORT ON START");
-
     }
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
@@ -281,7 +317,6 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
         display.getSize(size);
         int width = size.x;
 
-        System.out.println("Map snap shot image filename: " + currentVisit.mapSnapShotImage);
 
         if (checkFileWritePermssion()) {
 
@@ -290,16 +325,12 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
                 ViewGroup.LayoutParams params = mapFragment.getView().getLayoutParams();
                 params.width = width;
                 mapFragment.getMapAsync(this);
-
+                snapImg.setVisibility(View.INVISIBLE);
             } else {
                 mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.vMap);
                 ViewGroup.LayoutParams params = mapFragment.getView().getLayoutParams();
                 params.width = 0;
                 params.height = 0;
-                //ViewGroup.LayoutParams params = mapFragment.getView().getLayoutParams();
-                //mapFragment.getMapAsync(this);
-
-                System.out.println("VISIT REPORT: get map async");
                 ViewGroup.LayoutParams params2 = snapImg.getLayoutParams();
                 params2.height = width;
                 params2.width = width;
@@ -309,35 +340,46 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
         }
     }
     private void takeSnapshot() {
-        System.out.println("TAKE SNAP");
         final VisitDetail finalTempVisit = currentVisitTemp;
+        final File imageFile = getPictureFile();
+
         GoogleMap.SnapshotReadyCallback callback = new GoogleMap.SnapshotReadyCallback() {
-            Bitmap mapBitmap;
+
             @Override
             public void onSnapshotReady(Bitmap bitmap) {
-                mapBitmap = bitmap;
-                System.out.println("THREAD BITMAP WRITE TO FILE: " + mapBitmap.getByteCount());
+                String imageFileString = imageFile.getAbsolutePath();
+
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        FileOutputStream fileOutputStream = null;
+                        OutputStream outputStream;
                         try {
-                            fileOutputStream= new FileOutputStream(getPictureFile());
-                            mapBitmap.compress(Bitmap.CompressFormat.JPEG, 25,fileOutputStream);
-                        } catch (FileNotFoundException fnf) {
-                            fnf.printStackTrace();
-                        } catch (IOException e) {
+                            outputStream = new FileOutputStream(imageFile);
+                            bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream);
+                            outputStream.flush();
+                            outputStream.close();
+                        } catch (Exception e) {
                             e.printStackTrace();
-                        } finally {
-                            try {
-                                fileOutputStream.close();
-                                currentVisit.mapSnapShotImage = getPictureFile().getAbsolutePath();
-                                writeMapBitmapToFile(finalTempVisit, bitmap);
-                                System.out.println("MAP SNAP FINISH  FILE WRITING");
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
                         }
+
+                        currentVisit.mapSnapShotImage = imageFileString;
+
+                        BitmapFactory.Options imageOptions = new BitmapFactory.Options();
+                        imageOptions.inSampleSize = 2;
+                        Bitmap newBitmap = BitmapFactory.decodeFile(imageFileString,imageOptions);
+                        OutputStream downBitMap;
+                        try {
+                            downBitMap = new FileOutputStream(imageFile);
+                            newBitmap.compress(Bitmap.CompressFormat.JPEG, 50, downBitMap);
+                            downBitMap.flush();
+                            downBitMap.close();
+
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+
+                        makeSnapShotImageView(finalTempVisit);
+
                     }
                 }).start();
             }
@@ -345,25 +387,48 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
         if (callback != null && iMap != null) {
             iMap.snapshot(callback);
         }
-        Timer timer = new Timer();
-        TimerTask timerTask = new TimerTask() {
+
+        Timer timer2 = new Timer();
+        mapSnapUploadTimerTask = new TimerTask() {
             @Override
             public void run() {
-                System.out.println("BEGIN UPLOAD TO SERVER OF MAP SNAP");
-                mVisitsAndTracking.sendMapSnapToServer(currentVisitTemp);
-                timer.cancel();
+                AndroidNetworking.upload("https://leashtime.com/appointment-map-upload.php")
+                        .addMultipartFile("image", imageFile)
+                        .addMultipartParameter("loginid", mVisitsAndTracking.USERNAME)
+                        .addMultipartParameter("password", mVisitsAndTracking.PASSWORD)
+                        .addMultipartParameter("appointmentid", finalTempVisit.appointmentid)
+                        .setTag("mapSnapUpload")
+                        .setPriority(Priority.HIGH)
+                        .build()
+                        .setUploadProgressListener(new UploadProgressListener() {
+                            @Override
+                            public void onProgress(long bytesUploaded, long totalBytes) {
+                                System.out.println("Num bytes uploaded: " + bytesUploaded + " of: " + totalBytes);
+                            }
+                        })
+                        .getAsString(new StringRequestListener() {
+                            @Override
+                            public void onResponse(String response) {
+                                System.out.println("String request listener: " + response);
+                            }
+
+                            @Override
+                            public void onError(ANError anError) {
+                                System.out.println("Error: " + anError.toString());
+                            }
+                        });
+                timer2.cancel();
                 finish();
             }
         };
-        timer.schedule(timerTask, 2000, 2000);
+        timer2.schedule(mapSnapUploadTimerTask, 1000,1000);
     }
 
-    public void writeMapBitmapToFile(VisitDetail visitDetail, Bitmap bitmap) {
-        visitDetail.mapSnapShotImage = getPictureFile().getAbsolutePath();
-        mVisitsAndTracking.writeVisitDataToFile(currentVisitTemp);
+    public void makeSnapShotImageView(VisitDetail visitDetail) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                mVisitsAndTracking.writeVisitDataToFile(currentVisitTemp);
                 snapImg.setImageBitmap(BitmapFactory.decodeFile(currentVisit.mapSnapShotImage));
             }
         });
@@ -452,7 +517,7 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
             fCurrentVisit.visitReportRequest = request;
             sVisitsAndTracking.writeVisitDataToFile(fCurrentVisit);
         } else {
-            OkHttpClient sendReportClient = new OkHttpClient();
+            final OkHttpClient sendReportClient = new OkHttpClient();
             sendReportClient.newCall(request).enqueue(new Callback() {
                 ResponseBody body;
 
@@ -460,15 +525,14 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
                 public void onFailure(Call call, IOException e) {
                     fCurrentVisit.visitReportUploadStatus = "FAIL";
                     fCurrentVisit.visitReportRequest = request;
+                    e.printStackTrace();
                 }
 
                 @Override
                 public void onResponse(Call call, Response response) {
-                    body = response.body();
-                    System.out.println("FINISHED VISIT REPORT FORM SEND TO SERVER: " + body);
-                    body.close();
                     fCurrentVisit.visitReportUploadStatus = "SUCCESS";
-                    //finish();
+                    body = response.body();
+                    body.close();
                 }
             });
         }
@@ -788,4 +852,5 @@ public class VisitReport extends android.support.v7.app.AppCompatActivity  imple
         }
         return FALSE;
     }
+
 }

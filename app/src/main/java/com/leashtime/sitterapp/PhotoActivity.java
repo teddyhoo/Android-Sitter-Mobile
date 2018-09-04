@@ -109,7 +109,6 @@ public class PhotoActivity extends AppCompatActivity{
         EventBus.getDefault().unregister(this);
         super.onStop();
     }
-
     public void sendPhotoToServer(VisitDetail visit) {
         SendPhotoServer photoUpload = new SendPhotoServer(sVisitsAndTracking.mPreferences.getString("username",""), sVisitsAndTracking.mPreferences.getString("password",""), visit, "petPhoto");
     }
@@ -125,7 +124,167 @@ public class PhotoActivity extends AppCompatActivity{
             pos++;
         }
     }
+    public void writeImageToFileAndSend(Bitmap image, VisitDetail visitDetail, File imageFileName) {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream(image.getByteCount());
+        image.compress(Bitmap.CompressFormat.JPEG,100, bos);
+        try {
+            imageFileName.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
 
+        }
+        FileOutputStream fileOutputStream = null;
+        try {
+            fileOutputStream = new FileOutputStream(imageFileName);
+            fileOutputStream.write(bos.toByteArray());
+        } catch (FileNotFoundException fnf) {
+            fnf.printStackTrace();
+        }  catch  (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                fileOutputStream.close();
+                bos.close();
+                SavePhotoEvent photoTake = new SavePhotoEvent(visitDetail.appointmentid, "file");
+                EventBus.getDefault().post(photoTake);
+            } catch (IOException ee) {
+                ee.printStackTrace();
+            }
+        }
+    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent resultData) {
+        super.onActivityResult(requestCode, resultCode, resultData);
+        if(resultCode == AppCompatActivity.RESULT_OK) {
+            VisitsAndTracking mVisitsTracking = VisitsAndTracking.getInstance();
+            ImageView previewImage = findViewById(R.id.previewImage);
+            File finalFileNameImage = getPictureFile();
+            Display display = getWindowManager().getDefaultDisplay();
+            Point size = new Point();
+            display.getSize(size);
+            int width = size.x;
+
+            try {
+                finalFileNameImage.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+
+            }
+            for (VisitDetail currentVisit : mVisitsTracking.visitData) {
+                if (currentVisit.appointmentid.equals(visitID)) {
+                    currentVisit.petPicFileName = finalFileNameImage.getAbsolutePath();
+                }
+            }
+            if (resultData != null) {
+                try {
+                    Uri resource = resultData.getData();
+                    InputStream inputStream = getApplicationContext().getContentResolver().openInputStream(resource);
+                    ExifInterface exifInterface = new ExifInterface();
+                    int orientation = 0;
+                    Matrix matrix = new Matrix();
+
+                    try {
+                        exifInterface.readExif(inputStream);
+                        Integer val = exifInterface.getTagIntValue(ExifInterface.TAG_ORIENTATION);
+                        if (val != null) {
+                            orientation = ExifInterface.getRotationForOrientationValue(val.shortValue());
+                            if (orientation  ==  90) {
+                                matrix.setRotate(90);
+                            } else if (orientation == 180) {
+
+                            } else if (orientation == 270) {
+                                matrix.setRotate(270);
+                            }
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    InputStream inputStream2 = getApplicationContext().getContentResolver().openInputStream(resource);
+                    BitmapFactory.Options imageFileOptions = new BitmapFactory.Options();
+                    imageFileOptions.inJustDecodeBounds = true;
+                    BitmapFactory.Options newOpts = new BitmapFactory.Options();
+                    if (imageFileOptions.outWidth > 600)
+                        newOpts.inSampleSize = 4;
+                    else
+                        newOpts.inSampleSize = 2;
+                    Bitmap bm = BitmapFactory.decodeStream(inputStream2, null, newOpts);
+                    int widthBM = bm.getWidth();
+                    int heightBM = bm.getHeight();
+                    int netWidth = 0;
+                    int netHeight = 0;
+                    int dimension = 0;
+
+                    if (widthBM >  heightBM && orientation == 90) {
+                        netWidth  = (widthBM - heightBM)/2;
+                        dimension = heightBM;
+                    } else if (widthBM > heightBM && orientation == 0) {
+                        netWidth = (widthBM - heightBM) / 2;
+                        dimension = heightBM;
+                    } else if (heightBM > widthBM && orientation == 0) {
+                        netHeight = (heightBM - widthBM)/2;
+                        dimension = widthBM;
+                    } else if (heightBM == widthBM && orientation == 0) {
+                        netHeight = 0;
+                        netWidth = 0;
+                        dimension = widthBM;
+                    }
+
+                    ByteArrayOutputStream bos = null;
+
+                    try {
+                        Bitmap bmSheared = Bitmap.createBitmap(bm,netWidth, netHeight, dimension, dimension);
+                        Bitmap bmRotated = Bitmap.createBitmap(bmSheared, 0, 0, bmSheared.getWidth(), bmSheared.getHeight(),matrix, true);
+                        bos = new ByteArrayOutputStream(bmRotated.getByteCount());
+                        bmRotated.compress(Bitmap.CompressFormat.JPEG, 90, bos);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                System.out.println("Preview image on UI main thread");
+                                previewImage.setImageBitmap(bmRotated);
+                            }
+                        });
+                    } catch (OutOfMemoryError e) {
+                        e.printStackTrace();
+                    }
+
+                    FileOutputStream fileOutputStream = null;
+                    try {
+                        fileOutputStream = new FileOutputStream(finalFileNameImage);
+                        fileOutputStream.write(bos.toByteArray());
+                    } catch (FileNotFoundException fnf) {
+                        fnf.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } finally {
+                        try {
+                            bos.close();
+                            fileOutputStream.close();
+                            SavePhotoEvent photoTake = new SavePhotoEvent(visitID, "file");
+                            EventBus.getDefault().post(photoTake);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                } catch (IOException fe) {
+                    fe.printStackTrace();
+                }
+            }
+        }
+    }
+    public File getImageFileName() {
+
+        SimpleDateFormat rightNowDateFormat = new SimpleDateFormat("MM-dd-yy", Locale.US);
+        SimpleDateFormat rightNowFormatTransmit = new SimpleDateFormat("HH:mm:ss", Locale.US);
+        Date transmitDate = new Date();
+        String nowTime = rightNowFormatTransmit.format(transmitDate);
+        String nowDate = rightNowDateFormat.format(transmitDate);
+        String concatDate = nowDate + "_" + nowTime;
+        String fileName = "PHOTO_" + visitID + "_" + concatDate + ".jpg";
+        return new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), fileName);
+    }
     public Boolean checkCameraPermission() {
         int currentAPIVersion = Build.VERSION.SDK_INT;
 
@@ -423,167 +582,4 @@ public class PhotoActivity extends AppCompatActivity{
             }
         });
     }
-    public void writeImageToFileAndSend(Bitmap image, VisitDetail visitDetail, File imageFileName) {
-
-        ByteArrayOutputStream bos = new ByteArrayOutputStream(image.getByteCount());
-        image.compress(Bitmap.CompressFormat.JPEG,100, bos);
-        try {
-            imageFileName.createNewFile();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-
-        }
-        FileOutputStream fileOutputStream = null;
-        try {
-            fileOutputStream = new FileOutputStream(imageFileName);
-            fileOutputStream.write(bos.toByteArray());
-        } catch (FileNotFoundException fnf) {
-            fnf.printStackTrace();
-        }  catch  (IOException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                fileOutputStream.close();
-                bos.close();
-                SavePhotoEvent photoTake = new SavePhotoEvent(visitDetail.appointmentid, "file");
-                EventBus.getDefault().post(photoTake);
-            } catch (IOException ee) {
-                ee.printStackTrace();
-            }
-        }
-    }
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent resultData) {
-        super.onActivityResult(requestCode, resultCode, resultData);
-        if(resultCode == AppCompatActivity.RESULT_OK) {
-            VisitsAndTracking mVisitsTracking = VisitsAndTracking.getInstance();
-            ImageView previewImage = findViewById(R.id.previewImage);
-            File finalFileNameImage = getPictureFile();
-            Display display = getWindowManager().getDefaultDisplay();
-            Point size = new Point();
-            display.getSize(size);
-            int width = size.x;
-
-            try {
-                finalFileNameImage.createNewFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-
-            }
-            for (VisitDetail currentVisit : mVisitsTracking.visitData) {
-                if (currentVisit.appointmentid.equals(visitID)) {
-                    currentVisit.petPicFileName = finalFileNameImage.getAbsolutePath();
-                }
-            }
-            if (resultData != null) {
-                try {
-                    Uri resource = resultData.getData();
-                    InputStream inputStream = getApplicationContext().getContentResolver().openInputStream(resource);
-                    ExifInterface exifInterface = new ExifInterface();
-                    int orientation = 0;
-                    Matrix matrix = new Matrix();
-
-                    try {
-                        exifInterface.readExif(inputStream);
-                        Integer val = exifInterface.getTagIntValue(ExifInterface.TAG_ORIENTATION);
-                        if (val != null) {
-                            orientation = ExifInterface.getRotationForOrientationValue(val.shortValue());
-                            if (orientation  ==  90) {
-                                matrix.setRotate(90);
-                            } else if (orientation == 180) {
-
-                            } else if (orientation == 270) {
-                                matrix.setRotate(270);
-                            }
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-
-                    InputStream inputStream2 = getApplicationContext().getContentResolver().openInputStream(resource);
-                    BitmapFactory.Options imageFileOptions = new BitmapFactory.Options();
-                    imageFileOptions.inJustDecodeBounds = true;
-                    BitmapFactory.Options newOpts = new BitmapFactory.Options();
-                    if (imageFileOptions.outWidth > 600)
-                        newOpts.inSampleSize = 4;
-                    else
-                        newOpts.inSampleSize = 2;
-                    Bitmap bm = BitmapFactory.decodeStream(inputStream2, null, newOpts);
-                    int widthBM = bm.getWidth();
-                    int heightBM = bm.getHeight();
-                    int netWidth = 0;
-                    int netHeight = 0;
-                    int dimension = 0;
-
-                    if (widthBM >  heightBM && orientation == 90) {
-                        netWidth  = (widthBM - heightBM)/2;
-                        dimension = heightBM;
-                    } else if (widthBM > heightBM && orientation == 0) {
-                        netWidth = (widthBM - heightBM) / 2;
-                        dimension = heightBM;
-                    } else if (heightBM > widthBM && orientation == 0) {
-                        netHeight = (heightBM - widthBM)/2;
-                        dimension = widthBM;
-                    } else if (heightBM == widthBM && orientation == 0) {
-                        netHeight = 0;
-                        netWidth = 0;
-                        dimension = widthBM;
-                    }
-
-                    ByteArrayOutputStream bos = null;
-
-                    try {
-                        Bitmap bmSheared = Bitmap.createBitmap(bm,netWidth, netHeight, dimension, dimension);
-                        Bitmap bmRotated = Bitmap.createBitmap(bmSheared, 0, 0, bmSheared.getWidth(), bmSheared.getHeight(),matrix, true);
-                        bos = new ByteArrayOutputStream(bmRotated.getByteCount());
-                        bmRotated.compress(Bitmap.CompressFormat.JPEG, 90, bos);
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                System.out.println("Preview image on UI main thread");
-                                previewImage.setImageBitmap(bmRotated);
-                            }
-                        });
-                    } catch (OutOfMemoryError e) {
-                        e.printStackTrace();
-                    }
-
-                    FileOutputStream fileOutputStream = null;
-                    try {
-                        fileOutputStream = new FileOutputStream(finalFileNameImage);
-                        fileOutputStream.write(bos.toByteArray());
-                    } catch (FileNotFoundException fnf) {
-                        fnf.printStackTrace();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } finally {
-                        try {
-                            bos.close();
-                            fileOutputStream.close();
-                            SavePhotoEvent photoTake = new SavePhotoEvent(visitID, "file");
-                            EventBus.getDefault().post(photoTake);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                } catch (IOException fe) {
-                    fe.printStackTrace();
-                }
-            }
-        }
-    }
-    public File getImageFileName() {
-
-        SimpleDateFormat rightNowDateFormat = new SimpleDateFormat("MM-dd-yy", Locale.US);
-        SimpleDateFormat rightNowFormatTransmit = new SimpleDateFormat("HH:mm:ss", Locale.US);
-        Date transmitDate = new Date();
-        String nowTime = rightNowFormatTransmit.format(transmitDate);
-        String nowDate = rightNowDateFormat.format(transmitDate);
-        String concatDate = nowDate + "_" + nowTime;
-        String fileName = "PHOTO_" + visitID + "_" + concatDate + ".jpg";
-        return new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), fileName);
-    }
-
 }

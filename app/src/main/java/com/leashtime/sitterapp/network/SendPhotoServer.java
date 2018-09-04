@@ -33,27 +33,26 @@ public class SendPhotoServer {
         String url;
         String username = name;
         String password = pass;
-
-
+        VisitDetail visitDetail = visitID;
+        String requestType = type;
         Response.Listener responseListen = new SendPhotoServer.NetworkResponseListener();
         Response.ErrorListener errorListen = new SendPhotoServer.MyErrorListener();
 
         if  (type.equals("petPhoto")) {
             String imageFileSend = visitID.petPicFileName;
             url = "https://leashtime.com/appointment-photo-upload.php";
-            multiPartRequest = new SendPhotoServer.MyVolleyMultipartRequest(url, responseListen, errorListen, username, password, type, visitID, imageFileSend);
+            multiPartRequest = new SendPhotoServer.MyVolleyMultipartRequest(url, responseListen, errorListen, username, password, requestType, visitDetail, imageFileSend);
         } else if (type.equals("map")) {
             String imageFileSend = visitID.mapSnapShotImage;
             url = "https://leashtime.com/appointment-map-upload.php";
-            multiPartRequest = new SendPhotoServer.MyVolleyMultipartRequest(url, responseListen, errorListen, username, password, type, visitID, imageFileSend);
+            multiPartRequest = new SendPhotoServer.MyVolleyMultipartRequest(url, responseListen, errorListen, username, password, requestType, visitDetail, imageFileSend);
         }
 
         if (checkNetworkConnection()) {
-
             if (type.equals("petPhoto")) {
                 visitID.imageUploadStatus = "PEND";
             } else if(type.equals("map")) {
-                visitID.mapSnapShotImage = "PEND";
+                visitID.mapSnapUploadStatus = "PEND";
             }
             sVisitsAndTracking.writeVisitDataToFile(visitID);
             VolleySingleton.getInstance(MainApplication.getAppContext()).addToRequestQueue(multiPartRequest);
@@ -63,7 +62,7 @@ public class SendPhotoServer {
             if (type.equals("petPhoto")) {
                 visitID.imageUploadStatus = "FAIL";
             } else if(type.equals("map")) {
-                visitID.mapSnapShotImage = "FAIL";
+                visitID.mapSnapUploadStatus = "FAIL";
             }
             sVisitsAndTracking.writeVisitDataToFile(visitID);
         }
@@ -108,9 +107,8 @@ public class SendPhotoServer {
         @Override
         protected Map<String, VolleyMultipartRequest.DataPart> getByteData() {
             Map<String, VolleyMultipartRequest.DataPart> params = new HashMap<>();
-            params.put("image", new VolleyMultipartRequest.DataPart(visitID.petPicFileName,
-                    getByteUploadData(imageFileSend), "image/jpg"));
-            System.out.println("Request params: " + params);
+            params.put("image", new VolleyMultipartRequest.DataPart(visitID.petPicFileName, getByteUploadData(imageFileSend), "image/jpg"));
+
             return params;
         }
 
@@ -118,15 +116,21 @@ public class SendPhotoServer {
         protected byte[] getByteUploadData(String sendFileName) {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             try {
-
                 BitmapFactory.Options options = new BitmapFactory.Options();
+                if (imageType.equals("map")) {
+                    options.inSampleSize = 4;
+                }
                 Bitmap visitImage = BitmapFactory.decodeFile(sendFileName, options);
-                visitImage.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
-                System.out.println("BYTE UPLOAD DATA TRY CATCH, bitmap size: " + visitImage.getByteCount() + ", h: " +visitImage.getHeight() + ", w: " + visitImage.getWidth());
+                visitImage.compress(Bitmap.CompressFormat.JPEG, 25, byteArrayOutputStream);
             } catch (Exception  e) {
                 e.printStackTrace();
             } finally {
-                System.out.println("Byte array output stream: " + byteArrayOutputStream.toByteArray().length);
+                byte [] imageArray = byteArrayOutputStream.toByteArray();
+                int sizeImage = imageArray.length;
+                for (int i = 0; i < sizeImage; i++) {
+                    Byte imgByte = imageArray[i];
+                    System.out.println("Image byte: " +  imgByte.toString());
+                }
                 return byteArrayOutputStream.toByteArray();
             }
         }
@@ -146,11 +150,10 @@ public class SendPhotoServer {
                         if (sVisitsAndTracking.onWhichVisitID.equals(visitDetail.appointmentid)) {
                             if (visitDetail.imageUploadStatus.equals("PEND")) {
                                 visitDetail.imageUploadStatus = "FAIL";
-                            } else if (visitDetail.mapSnapShotImage.equals("PEND")) {
-                                visitDetail.mapSnapShotImage = "FAIL";
+                            } else if (visitDetail.mapSnapUploadStatus.equals("PEND")) {
+                                visitDetail.mapSnapUploadStatus = "FAIL";
                             }
                             sVisitsAndTracking.writeVisitDataToFile(visitDetail);
-
                         }
                     }
 
@@ -160,8 +163,8 @@ public class SendPhotoServer {
                         if (sVisitsAndTracking.onWhichVisitID.equals(visitDetail.appointmentid)) {
                             if (visitDetail.imageUploadStatus.equals("PEND")) {
                                 visitDetail.imageUploadStatus = "FAIL";
-                            } else if (visitDetail.mapSnapShotImage.equals("PEND")) {
-                                visitDetail.mapSnapShotImage = "FAIL";
+                            } else if (visitDetail.mapSnapUploadStatus.equals("PEND")) {
+                                visitDetail.mapSnapUploadStatus = "FAIL";
                             }
                             sVisitsAndTracking.writeVisitDataToFile(visitDetail);
 
@@ -171,9 +174,8 @@ public class SendPhotoServer {
                 }
             } else {
                 result = new String(networkResponse.data);
+                System.out.println("VOLLEY RESPONSE: " + result);
             }
-
-            System.out.println(result);
         }
     }
 
@@ -182,17 +184,13 @@ public class SendPhotoServer {
         @Override
         public void onResponse(NetworkResponse response) {
             byte[] responseByte = response.data;
-            System.out.println("Status Response code: " + response.statusCode + ", Network Time (ms): " + response.networkTimeMs);
-            System.out.println("Photo upload response: " + response.headers + " " + response);
-            System.out.println("Response byte: " + responseByte.toString());
-
             if (response.statusCode != 200) {
                 for (VisitDetail visitDetail : sVisitsAndTracking.visitData) {
                     if (sVisitsAndTracking.onWhichVisitID.equals(visitDetail.appointmentid)) {
                         if (visitDetail.imageUploadStatus.equals("PEND")) {
                             visitDetail.imageUploadStatus = "FAIL";
-                        } else if (visitDetail.mapSnapShotImage.equals("PEND")) {
-                            visitDetail.mapSnapShotImage = "FAIL";
+                        } else if (visitDetail.mapSnapUploadStatus.equals("PEND")) {
+                            visitDetail.mapSnapUploadStatus = "FAIL";
                         }
                     }
                 }
@@ -202,8 +200,8 @@ public class SendPhotoServer {
                     if (sVisitsAndTracking.onWhichVisitID.equals(visitDetail.appointmentid)) {
                         if (visitDetail.imageUploadStatus.equals("PEND")) {
                             visitDetail.imageUploadStatus = "SUCCESS";
-                        } else if (visitDetail.mapSnapShotImage.equals("PEND")) {
-                            visitDetail.mapSnapShotImage = "SUCCESS";
+                        } else if (visitDetail.mapSnapUploadStatus.equals("PEND")) {
+                            visitDetail.mapSnapUploadStatus = "SUCCESS";
                         }
                     }
                 }
@@ -235,35 +233,35 @@ public class SendPhotoServer {
     public boolean checkNetworkConnection() {
 
         if (isNetworkConnected()) {
-            System.out.println("NETWORK IS CONNECTED");
+            //System.out.println("NETWORK IS CONNECTED");
             ConnectivityManager cm = (ConnectivityManager) MainApplication.getInstance().getApplicationContext().getSystemService (Context.CONNECTIVITY_SERVICE);
             NetworkInfo ni = cm.getActiveNetworkInfo();
 
             if (ni.isConnectedOrConnecting()) {
-                System.out.println("NETWORK CONNECTION  RECOGNIZED");
+                //System.out.println("NETWORK CONNECTION  RECOGNIZED");
                 int type = ni.getType();
 
                 if (null != ni) {
                     if(type == ConnectivityManager.TYPE_WIFI) {
-                        System.out.println("WIFI");
+                        //System.out.println("WIFI");
                         return true;
                     } else if (type== ConnectivityManager.TYPE_MOBILE) {
-                        System.out.println("MOBILE");
+                        //System.out.println("MOBILE");
                         return true;
                     } else if (type== ConnectivityManager.TYPE_WIMAX) {
-                        System.out.println("WIMAX");
+                        //System.out.println("WIMAX");
                         return true;
                     } else {
-                        System.out.println("NO CONNECT type");
+                        //System.out.println("NO CONNECT type");
                         return false;
                     }
                 }
 
                 if (isInternetAvailable()) {
-                    System.out.println("CHECKING SOCKET.... FINE");
+                    //System.out.println("CHECKING SOCKET.... FINE");
                     return true;
                 } else {
-                    System.out.println("cannot route internet");
+                    //System.out.println("cannot route internet");
                     return false;
                 }
 

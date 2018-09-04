@@ -29,7 +29,6 @@ public class VolleyMultipartRequest extends Request<NetworkResponse> {
 
     public VolleyMultipartRequest(String url, Map<String, String> headers, Response.Listener<NetworkResponse> listener, Response.ErrorListener errorListener) {
         super(Request.Method.POST, url, errorListener);
-
         this.mListener = listener;
         this.mErrorListener = errorListener;
         this.mHeaders = headers;
@@ -44,9 +43,8 @@ public class VolleyMultipartRequest extends Request<NetworkResponse> {
     @Override
     public Map<String, String> getHeaders() throws AuthFailureError {
 
-        mHeaders.put("User-Agent","LeashTime Sitter Mobile App Android 1.0");
+        mHeaders.put("User-Agent","LeashTime Sitter Mobile App Android 2.0");
         mHeaders.put("Accept","application/json");
-
         return mHeaders != null ? mHeaders : super.getHeaders();
     }
 
@@ -71,12 +69,11 @@ public class VolleyMultipartRequest extends Request<NetworkResponse> {
 
             }
             dos.writeBytes(twoHyphens + boundary + twoHyphens + lineEnd);
-            System.out.println("Byte array output stream: " + bos.toByteArray().length);
+            System.out.println("VOLLEY REQUEST -> Byte array output stream: " + bos.toByteArray().length);
+            System.out.println(bos.toByteArray().toString());
             return bos.toByteArray();
         } catch (IOException e) {
-
             e.printStackTrace();
-
         }
         return null;
     }
