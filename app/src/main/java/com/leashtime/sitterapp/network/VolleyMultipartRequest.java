@@ -69,8 +69,6 @@ public class VolleyMultipartRequest extends Request<NetworkResponse> {
 
             }
             dos.writeBytes(twoHyphens + boundary + twoHyphens + lineEnd);
-            System.out.println("VOLLEY REQUEST -> Byte array output stream: " + bos.toByteArray().length);
-            System.out.println(bos.toByteArray().toString());
             return bos.toByteArray();
         } catch (IOException e) {
             e.printStackTrace();
@@ -190,7 +188,6 @@ public class VolleyMultipartRequest extends Request<NetworkResponse> {
             fileName = name;
             content = data;
             type = mimeType;
-            //System.out.println("<VOLLEY><DATA PART>"+ Arrays.toString(content));
         }
 
         /**

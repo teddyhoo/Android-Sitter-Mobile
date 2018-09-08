@@ -129,7 +129,6 @@ public class SendPhotoServer {
                 int sizeImage = imageArray.length;
                 for (int i = 0; i < sizeImage; i++) {
                     Byte imgByte = imageArray[i];
-                    System.out.println("Image byte: " +  imgByte.toString());
                 }
                 return byteArrayOutputStream.toByteArray();
             }
@@ -174,7 +173,6 @@ public class SendPhotoServer {
                 }
             } else {
                 result = new String(networkResponse.data);
-                System.out.println("VOLLEY RESPONSE: " + result);
             }
         }
     }
@@ -233,26 +231,20 @@ public class SendPhotoServer {
     public boolean checkNetworkConnection() {
 
         if (isNetworkConnected()) {
-            //System.out.println("NETWORK IS CONNECTED");
             ConnectivityManager cm = (ConnectivityManager) MainApplication.getInstance().getApplicationContext().getSystemService (Context.CONNECTIVITY_SERVICE);
             NetworkInfo ni = cm.getActiveNetworkInfo();
 
             if (ni.isConnectedOrConnecting()) {
-                //System.out.println("NETWORK CONNECTION  RECOGNIZED");
                 int type = ni.getType();
 
                 if (null != ni) {
                     if(type == ConnectivityManager.TYPE_WIFI) {
-                        //System.out.println("WIFI");
                         return true;
                     } else if (type== ConnectivityManager.TYPE_MOBILE) {
-                        //System.out.println("MOBILE");
                         return true;
                     } else if (type== ConnectivityManager.TYPE_WIMAX) {
-                        //System.out.println("WIMAX");
                         return true;
                     } else {
-                        //System.out.println("NO CONNECT type");
                         return false;
                     }
                 }

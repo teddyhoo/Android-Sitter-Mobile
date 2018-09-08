@@ -91,7 +91,7 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
     private boolean serviceBound;
     public boolean isBackground;
 
-    private static final int POLLING_INTERVAL = 1200000; //20 minute
+    private static final int POLLING_INTERVAL = 3600000; //20 minute
     private static final int delay = 1200000;
     private static final int JOB_UPDATE_ID = 1001;
     private static final int ONE_DAY = 1000 * 60 * 60 * 24;
@@ -702,15 +702,12 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         if (isNetworkAvailable()) {
             for (final VisitDetail visitDetail : sVisitsAndTracking.visitData) {
                 if (visitDetail.currentArriveStatus.equals("FAIL")) {
-                    Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST RESEND ARRIVE: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
                     reSendArriveRequest(visitDetail);
                 }
                 if (visitDetail.currentCompleteStatus.equals("FAIL")) {
-                    Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST RESEND COMPLETE: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
                     reSendCompleteRequest(visitDetail);
                 }
                 if (visitDetail.visitReportUploadStatus.equals("FAIL")) {
-                    Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST VISIT REPORT: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
                     client.newCall(visitDetail.visitReportRequest).enqueue(new Callback() {
                         @Override
                         public void onFailure(Call call, IOException e) {
@@ -724,17 +721,14 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                     });
                 }
                 if (visitDetail.imageUploadStatus.equals("FAIL")) {
-                    Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST RESEND PHOTO IMAGE: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
                     SendPhotoServer photoUpload = new SendPhotoServer(sVisitsAndTracking.mPreferences.getString("password",""), sVisitsAndTracking.mPreferences.getString("password",""), visitDetail, "petPhoto");
                 }
                 if (visitDetail.mapSnapUploadStatus.equals("FAIL")) {
-                    Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST RESEND MAP SNAPSHOT: " + visitDetail.appointmentid, Toast.LENGTH_SHORT).show();
                     SendPhotoServer photoUpload = new SendPhotoServer(sVisitsAndTracking.mPreferences.getString("password",""), sVisitsAndTracking.mPreferences.getString("password",""), visitDetail, "map");
                 }
             }
 
             if (!sVisitsAndTracking.resendCoordUploadRequest.isEmpty()) {
-                Toast.makeText(MainApplication.getAppContext(), "BAD REQUEST COORDINATE UPLOAD", Toast.LENGTH_SHORT).show();
                 for (final Request request : sVisitsAndTracking.resendCoordUploadRequest) {
                     client.newCall(request).enqueue(new Callback() {
                         @Override
@@ -769,7 +763,6 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         if (sVisitsAndTracking.USER_AGENT == null) {
             sVisitsAndTracking.USER_AGENT = "LeashTime Android / null user agent";
         }
-
         Request request = new Request.Builder()
                 .url(url)
                 .header("User-Agent", sVisitsAndTracking.USER_AGENT)
