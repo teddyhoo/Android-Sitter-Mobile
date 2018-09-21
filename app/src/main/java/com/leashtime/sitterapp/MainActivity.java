@@ -91,7 +91,7 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
     private boolean serviceBound;
     public boolean isBackground;
 
-    private static final int POLLING_INTERVAL = 3600000; //20 minute
+    private static final int POLLING_INTERVAL = 3600000;  //  60 minutes interval poll sync refresh
     private static final int delay = 1200000;
     private static final int JOB_UPDATE_ID = 1001;
     private static final int ONE_DAY = 1000 * 60 * 60 * 24;
@@ -272,8 +272,6 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
                         visitAdapter.notifyDataSetChanged();
                 }
             });
-
-
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -293,21 +291,27 @@ public class MainActivity extends android.support.v7.app.AppCompatActivity {
         if (requestCode == JOB_UPDATE_ID) {
             if (!pollingUpdate) {
 
-                if (isNetworkAvailable()) {
-                    pollingUpdate = true;
-                    Date today = new Date();
-                    String todayString = formatDateComparison.format(today);
-                    String onWhichString = formatDateComparison.format(sVisitsAndTracking.onWhichDate);
-                    if (!todayString.equals(onWhichString)) {
-                        sVisitsAndTracking.onWhichDate = today;
-                        sVisitsAndTracking.showingWhichDate = today;
-                        sVisitsAndTracking.todayDateFormat = sVisitsAndTracking.formatter.format(sVisitsAndTracking.onWhichDate);
-                        sVisitsAndTracking.showingDateFormat = sVisitsAndTracking.formatter.format(sVisitsAndTracking.showingWhichDate);
-                        getVisits(sVisitsAndTracking.mPreferences.getString("username",""), sVisitsAndTracking.mPreferences.getString("password",""), daysBefore(), daysLater(), "1");
-                    } else {
-                        getVisits(sVisitsAndTracking.mPreferences.getString("username",""), sVisitsAndTracking.mPreferences.getString("password",""), daysBefore(), daysLater(), "0");
+
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (isNetworkAvailable()) {
+                            pollingUpdate = true;
+                            Date today = new Date();
+                            String todayString = formatDateComparison.format(today);
+                            String onWhichString = formatDateComparison.format(sVisitsAndTracking.onWhichDate);
+                            if (!todayString.equals(onWhichString)) {
+                                sVisitsAndTracking.onWhichDate = today;
+                                sVisitsAndTracking.showingWhichDate = today;
+                                sVisitsAndTracking.todayDateFormat = sVisitsAndTracking.formatter.format(sVisitsAndTracking.onWhichDate);
+                                sVisitsAndTracking.showingDateFormat = sVisitsAndTracking.formatter.format(sVisitsAndTracking.showingWhichDate);
+                                getVisits(sVisitsAndTracking.mPreferences.getString("username",""), sVisitsAndTracking.mPreferences.getString("password",""), daysBefore(), daysLater(), "1");
+                            } else {
+                                getVisits(sVisitsAndTracking.mPreferences.getString("username",""), sVisitsAndTracking.mPreferences.getString("password",""), daysBefore(), daysLater(), "0");
+                            }
+                        }
                     }
-                }
+                });
             }
         }
     }

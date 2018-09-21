@@ -23,7 +23,7 @@
                                           <PersistentState>
                                             <option name="values">
                                               <map>
-                                                <entry key="scalingPercent" value="177" />
+                                                <entry key="scalingPercent" value="46" />
                                               </map>
                                             </option>
                                           </PersistentState>
@@ -34,7 +34,7 @@
                                           <PersistentState>
                                             <option name="values">
                                               <map>
-                                                <entry key="scalingPercent" value="127" />
+                                                <entry key="scalingPercent" value="93" />
                                                 <entry key="trimmed" value="true" />
                                               </map>
                                             </option>
@@ -46,8 +46,9 @@
                                   <option name="values">
                                     <map>
                                       <entry key="backgroundAssetType" value="COLOR" />
-                                      <entry key="backgroundColor" value="2dabfd" />
-                                      <entry key="foregroundImage" value="$PROJECT_DIR$/../LeashTimeAndroidWorkspace/LeashTimeSitterApp/app/src/main/res/mipmap-xxxhdpi/leashtime-icon-app.png" />
+                                      <entry key="backgroundColor" value="2acb05" />
+                                      <entry key="backgroundImage" value="$PROJECT_DIR$/../IMAGE-ASSETS/LeashTimeSitterMobileApp-IOS/leashtime-logo-big@3x.png" />
+                                      <entry key="foregroundImage" value="$PROJECT_DIR$/../IMAGE-ASSETS/LeashTimeSitterMobileApp-IOS/leashtime-logo-big@3x.png" />
                                       <entry key="showGrid" value="true" />
                                     </map>
                                   </option>
